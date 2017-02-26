@@ -1,4 +1,4 @@
-extern crate serde_json;
+
 #[macro_use]
 extern crate serde;
 #[macro_use]
@@ -8,22 +8,7 @@ extern crate reqwest;
 use std::env;
 use std::io::Read;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct GithubRepo {
-    id: i32,
-    name: String,
-    url: String
-}
-
-fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
-    let repo_list : Vec<GithubRepo> = match serde_json::from_str(&json_str)  {
-        Ok(v) => v,
-        Err(e) => return Err(format!("Couldn't deserialize it: {}", e)),
-    };
-
-    println!("repo_list is {:?}", repo_list);
-    return Ok(repo_list);
-}
+mod github;
 
 fn main() {
     println!("Hello, world!");
@@ -43,7 +28,7 @@ fn main() {
     }
     // println!("request body: {}", buffer);
 
-    let foo = repo_list_from_string(buffer).unwrap();
+    let foo = github::repo_list_from_string(buffer).unwrap();
 
     
 }
