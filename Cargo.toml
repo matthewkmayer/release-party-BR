@@ -1,0 +1,6 @@
+[package]
+name = "release-party-br"
+version = "0.1.0"
+authors = ["Matthew Mayer <matthewkmayer@gmail.com>"]
+
+[dependencies]
