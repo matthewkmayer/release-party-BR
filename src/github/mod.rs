@@ -2,7 +2,9 @@ extern crate reqwest;
 extern crate serde_json;
 
 use std::io::Read;
+use std::collections::HashMap;
 
+static USERAGENT: &'static str = "release-party-br";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GithubRepo {
@@ -33,6 +35,19 @@ fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
 
 // Try to create the release PR and return the URL of it:
 pub fn create_release_pull_request(repo: &GithubRepo) -> Result<String, String> {
+    let mut pr_body = HashMap::new();
+    pr_body.insert("title", "automated release partay");
+    pr_body.insert("head", "master");
+    pr_body.insert("base", "release");
+
+    // let client = reqwest::Client::new().unwrap();
+    let repo_pr_url = format!("{}   {}", repo.url, "pulls");
+    println!("Would send PR to {}", repo_pr_url);
+    // let res = client.post(repo.url)
+    //     .json(&map)
+    //     .send();
+
+
     if repo.name == "calagator" {
         return Err("already up to date".to_string());
     }
