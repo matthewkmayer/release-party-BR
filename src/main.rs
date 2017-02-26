@@ -14,9 +14,11 @@ fn main() {
     let repos = github::get_repos_at("https://api.github.com/users/matthewkmayer/repos", &token).unwrap();
 
     for repo in &repos {
-        match github::create_release_pull_request(repo, &token) {
+        if !github::pull_request_already_present(repo, &token) {
+            match github::create_release_pull_request(repo, &token) {
             Ok(pr_url) => println!("Made PR for {}: {}", repo.name, pr_url),
             Err(e) => println!("Couldn't create PR for {}: {}", repo.name, e),
+            }
         }
     }
 }
