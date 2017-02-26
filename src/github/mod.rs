@@ -1,6 +1,8 @@
 extern crate reqwest;
 extern crate serde_json;
 
+use self::reqwest::header::{Authorization, UserAgent};
+
 use std::io::Read;
 use std::collections::HashMap;
 
@@ -13,7 +15,7 @@ pub struct GithubRepo {
     pub url: String
 }
 
-pub fn get_repos_at(repos_url: &str) -> Result<Vec<GithubRepo>, String> {
+pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
     let mut resp = reqwest::get(repos_url).unwrap();
     let mut buffer = String::new();
 
@@ -34,22 +36,29 @@ fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
 }
 
 // Try to create the release PR and return the URL of it:
-pub fn create_release_pull_request(repo: &GithubRepo) -> Result<String, String> {
+pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<String, String> {
+    if repo.name != "dot-net-web-api-experiment" {
+        return Err("already up to date".to_string());
+    }
     let mut pr_body = HashMap::new();
     pr_body.insert("title", "automated release partay");
     pr_body.insert("head", "master");
     pr_body.insert("base", "release");
 
-    // let client = reqwest::Client::new().unwrap();
-    let repo_pr_url = format!("{}   {}", repo.url, "pulls");
-    println!("Would send PR to {}", repo_pr_url);
-    // let res = client.post(repo.url)
-    //     .json(&map)
-    //     .send();
+    let repo_pr_url = format!("{}/{}", repo.url, "pulls");
+    let client = reqwest::Client::new().unwrap();
+    let res = client.post(&repo_pr_url)
+        .json(&pr_body)
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send();
 
+    println!("PR request res: {:?}", res);
+    // status code 201 created means we made a new one
 
-    if repo.name == "calagator" {
-        return Err("already up to date".to_string());
-    }
-    Ok("https://github.whatever/reponame/prs/1".to_string())
+    // 422 unprocessable means it's there already
+
+    // 422 unprocessable also means the branch is up to date
+
+    Ok(repo_pr_url)
 }
