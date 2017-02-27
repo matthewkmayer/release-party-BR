@@ -3,9 +3,8 @@ Release party automation
 
 ## Running
 
-`RP_GITHUBTOKEN=your_personal_token_here cargo run`
+`RP_GITHUBTOKEN=your_personal_token_here RP_ORGURL="https://api.github.com/orgs/ORGHERE/repos" cargo run`
 
 ### Future work
-1. Make which org configurable.
-2. Put everything behind a RESTful API to allow fancy web interface.
-3. Talk to CI to get status of PR?
+* Put everything behind a RESTful API to allow fancy web interface.
+* Talk to CI to get status of PR?
