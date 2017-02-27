@@ -14,8 +14,8 @@ mod github;
 fn main() {
     let token = get_github_token().unwrap();
     let repos = github::get_repos_at("https://api.github.com/users/matthewkmayer/repos", &token).unwrap();
-
     let repos_to_ignore = ignored_repos();
+    let mut pr_links = Vec::<String>::new();
 
     for repo in &repos {
         if repos_to_ignore.contains(&repo.name) {
@@ -23,13 +23,26 @@ fn main() {
             continue;
         }
         match github::existing_release_pr_location(repo, &token) {
-            Some(url) => println!("release PR present at {}", url),
+            Some(url) => pr_links.push(url),
             None => match github::create_release_pull_request(repo, &token) {
-                        Ok(pr_url) => println!("Made PR for {} at {}", repo.name, pr_url),
+                        Ok(pr_url) => pr_links.push(pr_url),
                         Err(e) => println!("Couldn't create PR for {}: {}", repo.name, e),
                     },
         }
 
+    }
+    print_party_links(pr_links);
+}
+
+fn print_party_links(pr_links: Vec<String>) {
+    if pr_links.len() > 0 {
+        println!("\nIt's a release party!  PRs to review and approve:");
+        for link in &pr_links {
+            println!("{}", link);
+        }
+    }
+    else {
+        println!("\nNo party today, all releases are done.");
     }
 }
 
