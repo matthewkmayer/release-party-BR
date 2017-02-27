@@ -13,7 +13,8 @@ mod github;
 
 fn main() {
     let token = get_github_token().unwrap();
-    let repos = github::get_repos_at("https://api.github.com/users/matthewkmayer/repos", &token).unwrap();
+    // used "https://api.github.com/users/matthewkmayer/repos" for testing:
+    let repos = github::get_repos_at(&get_github_org_url().unwrap(), &token).unwrap();
     let repos_to_ignore = ignored_repos();
     let mut pr_links = Vec::<String>::new();
 
@@ -63,7 +64,10 @@ fn ignored_repos() -> Vec<String> {
     }
 }
 
+fn get_github_org_url() -> Result<String, VarError> {
+    env::var("RP_ORGURL")
+}
+
 fn get_github_token() -> Result<String, VarError> {
-    let key = "RP_GITHUBTOKEN";
-    env::var(key)
+    env::var("RP_GITHUBTOKEN")
 }
