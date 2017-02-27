@@ -18,7 +18,8 @@ pub struct GithubRepo {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GithubPullRequest {
     id: i32,
-    pub url: String
+    pub url: String,
+    pub html_url: String
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
@@ -41,7 +42,7 @@ fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
     };
 }
 
-pub fn pull_request_already_present(repo: &GithubRepo, token: &str) -> bool {
+pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<String> {
     let mut pr_check_body = HashMap::new();
     pr_check_body.insert("head", "master");
     pr_check_body.insert("base", "release");
@@ -55,16 +56,23 @@ pub fn pull_request_already_present(repo: &GithubRepo, token: &str) -> bool {
         .send()
         .unwrap();
 
-    // println!("PR check request res: {:?}", res);
     let mut buffer = String::new();
 
     match res.read_to_string(&mut buffer) {
         Ok(_) => (),
         Err(e) => println!("error reading response: {}", e),
     }
-    // println!("\n\n\nresponse for checking github PRs: {}", buffer);
 
-    return false;
+    let pull_reqs : Vec<GithubPullRequest> = match serde_json::from_str(&buffer)  {
+        Ok(v) => v,
+        Err(_) => Vec::new(),
+    };
+
+    if pull_reqs.len() > 0 {
+        return Some(pull_reqs[0].html_url.clone());
+    }
+
+    return None;
 }
 
 // Try to create the release PR and return the URL of it:
@@ -86,7 +94,6 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<Str
         .send()
         .unwrap();
 
-    println!("PR request res: {:?}", res);
     if res.status().is_success() {
         let mut buffer = String::new();
         match res.read_to_string(&mut buffer) {
@@ -97,15 +104,10 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<Str
             Ok(v) => v,
             Err(e) => return Err(format!("Couldn't deserialize pull req response: {}", e)),
         };
-        // Need to massage this from api url to web url:
-        return Ok(pull_req.url);
-        
+        return Ok(pull_req.html_url);
     }
-    // status code 201 created means we made a new one
-
     // 422 unprocessable means it's there already
-
     // 422 unprocessable also means the branch is up to date
 
-    Err("boo didn't get successful response".to_string())
+    Err("Didn't get successful response: release branch up to date already?".to_string())
 }
