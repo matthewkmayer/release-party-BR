@@ -8,14 +8,14 @@ use std::collections::HashMap;
 
 static USERAGENT: &'static str = "release-party-br";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct GithubRepo {
     id: i32,
     pub name: String,
     pub url: String
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct GithubPullRequest {
     id: i32,
     pub url: String,
