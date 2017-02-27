@@ -14,11 +14,6 @@ fn main() {
     let repos = github::get_repos_at("https://api.github.com/users/matthewkmayer/repos", &token).unwrap();
 
     for repo in &repos {
-        // development: only use this repo
-        if repo.name != "dot-net-web-api-experiment" {
-            continue;
-        }
-
         match github::existing_release_pr_location(repo, &token) {
             Some(url) => println!("release PR present at {}", url),
             None => match github::create_release_pull_request(repo, &token) {

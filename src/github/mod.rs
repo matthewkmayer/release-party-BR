@@ -23,7 +23,12 @@ pub struct GithubPullRequest {
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
-    let mut resp = reqwest::get(repos_url).unwrap();
+    let client = reqwest::Client::new().unwrap();
+    let mut resp = client.get(repos_url)
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+        .unwrap();
     let mut buffer = String::new();
 
     match resp.read_to_string(&mut buffer) {
@@ -77,9 +82,6 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
 
 // Try to create the release PR and return the URL of it:
 pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<String, String> {
-    if repo.name != "dot-net-web-api-experiment" {
-        return Err("already up to date".to_string());
-    }
     let mut pr_body = HashMap::new();
     pr_body.insert("title", "automated release partay");
     pr_body.insert("head", "master");

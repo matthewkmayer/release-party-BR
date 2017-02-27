@@ -1,12 +1,9 @@
 # release-party-BR
 Release party automation
 
-### Game plan
-1. Be able to talk to github API.
-2. Get list of repos from an org.
-3. Check each repo to see if `release` branch is behind `master`.
-4. If a repo is, create new PR from `master` to `release`.
-5. Show a list of all repos and their status: up to date or which PR brings `release` up to speed.
+## Running
+
+`RP_GITHUBTOKEN=your_personal_token_here cargo run`
 
 ### Future work
 1. Make which org configurable.
