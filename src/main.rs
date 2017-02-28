@@ -13,26 +13,38 @@ mod github;
 
 fn main() {
     let token = get_github_token().unwrap();
-    // used "https://api.github.com/users/matthewkmayer/repos" for testing:
-    let repos = github::get_repos_at(&get_github_org_url().unwrap(), &token).unwrap();
-    let repos_to_ignore = ignored_repos();
+    let repos = get_repos_we_care_about(&token);
     let mut pr_links = Vec::<String>::new();
 
+    // prime spot for parallelizing with parallel iterators from rayon:
     for repo in &repos {
-        if repos_to_ignore.contains(&repo.name) {
-            println!("skipping {}", repo.name);
-            continue;
+        match get_release_pr_for(repo, &token) {
+            Some(pr_url) => pr_links.push(pr_url),
+            None => (),
         }
-        match github::existing_release_pr_location(repo, &token) {
-            Some(url) => pr_links.push(url),
-            None => match github::create_release_pull_request(repo, &token) {
-                        Ok(pr_url) => pr_links.push(pr_url),
-                        Err(e) => println!("Couldn't create PR for {}: {}", repo.name, e),
-                    },
-        }
-
     }
     print_party_links(pr_links);
+}
+
+fn get_repos_we_care_about(token: &str) -> Vec<github::GithubRepo> {
+    // used "https://api.github.com/users/matthewkmayer/repos" for testing:
+    let mut repos = github::get_repos_at(&get_github_org_url().unwrap(), &token).unwrap();
+    let repos_to_ignore = ignored_repos();
+
+    // remove repos we don't care about:
+    repos.retain(|ref repo| !repos_to_ignore.contains(&repo.name));
+
+    repos
+}
+
+fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> {
+     match github::existing_release_pr_location(repo, &token) {
+        Some(url) => Some(url),
+        None => match github::create_release_pull_request(repo, &token) {
+                    Ok(pr_url) => Some(pr_url),
+                    Err(_) => None,
+                },
+    }
 }
 
 fn print_party_links(pr_links: Vec<String>) {
