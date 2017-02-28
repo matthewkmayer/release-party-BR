@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate serde_json;
 
 use self::reqwest::header::{Authorization, UserAgent};
+use self::reqwest::Url;
 
 use std::io::Read;
 use std::collections::HashMap;
@@ -19,7 +20,15 @@ pub struct GithubRepo {
 pub struct GithubPullRequest {
     id: i32,
     pub url: String,
-    pub html_url: String
+    pub html_url: String,
+    pub head: Commit,
+    pub base: Commit
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Commit {
+    pub sha: String,
+    pub label: String
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
@@ -49,14 +58,10 @@ fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
 }
 
 pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<String> {
-    let mut pr_check_body = HashMap::new();
-    pr_check_body.insert("head", "master");
-    pr_check_body.insert("base", "release");
-
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
+    let url = Url::parse_with_params(&repo_pr_url, &[("head", "master"), ("base", "release")]).unwrap();
     let client = reqwest::Client::new().unwrap();
-    let mut res = client.get(&repo_pr_url)
-        .json(&pr_check_body)
+    let mut res = client.get(url)
         .header(UserAgent(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
         .send()
