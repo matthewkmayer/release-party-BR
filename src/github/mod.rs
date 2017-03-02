@@ -32,9 +32,10 @@ pub struct Commit {
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
-    println!("Getting repo at {}", repos_url);
+    let url = Url::parse_with_params(&repos_url, &[("per_page", "75")]).unwrap();
+    println!("Getting repos at {}", url);
     let client = reqwest::Client::new().unwrap();
-    let mut resp = client.get(repos_url)
+    let mut resp = client.get(url)
         .header(UserAgent(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
         .send()
@@ -45,6 +46,7 @@ pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, Str
         Ok(_) => (),
         Err(e) => println!("error reading response from github when getting repo list: {}", e),
     }
+    // If needed in the future, pagination info is in resp.headers()
 
     return repo_list_from_string(buffer);
 }
