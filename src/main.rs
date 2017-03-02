@@ -19,11 +19,9 @@ fn main() {
         Ok(gh_token) => gh_token,
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
     };
-    println!("Getting repos we care about.");
     let repos = get_repos_we_care_about(&token);
     let mut pr_links = Vec::<String>::new();
 
-    println!("iterating over repos.");
     // prime spot for parallelizing with parallel iterators from rayon:
     for repo in &repos {
         match get_release_pr_for(repo, &token) {
