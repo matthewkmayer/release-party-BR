@@ -6,8 +6,6 @@ Designed to automate creating pull requests for releasing to production, release
 organization and creates pull requests from `master` to `release` branch on each repo.  Useful when there's many 
 repos ready for a production release.
 
-[![Build Status](https://travis-ci.org/matthewkmayer/release-party-BR.svg?branch=master)](https://travis-ci.org/matthewkmayer/release-party-BR)
-
 <table>
     <tr>
         <td><strong>Linux / OS X</strong></td>
