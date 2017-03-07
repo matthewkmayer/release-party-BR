@@ -2,8 +2,9 @@
 
 Release party automation.
 
-Designed to automate creating pull requests for releasing to production, release-party-br looks for repos and creates 
-pull requests from `master` to `release` branch on each repo.  Useful when there's many repos ready for a production release.
+Designed to automate creating pull requests for releasing to production, release-party-br looks for repos in an 
+organization and creates pull requests from `master` to `release` branch on each repo.  Useful when there's many 
+repos ready for a production release.
 
 ## Running
 
