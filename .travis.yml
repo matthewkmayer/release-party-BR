@@ -6,5 +6,9 @@ rust:
 os:
   - linux
   - osx
+branches:
+  only:
+    - master
+    - auto
 notifications:
   email: false
