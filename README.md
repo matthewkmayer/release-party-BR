@@ -40,3 +40,8 @@ repos ready for a production release.
 
 The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
 for an example.
+
+### Optional: compile in release mode
+
+Run `cargo build --release` to create a release binary.  This will run faster than a debug build.  The binary will be created at 
+`./target/release/release-party-br`.
