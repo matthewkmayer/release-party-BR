@@ -3,11 +3,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
+extern crate rayon;
 
 use std::env;
 use std::env::VarError;
 use std::io::prelude::*;
 use std::fs::File;
+use rayon::prelude::*;
 
 mod github;
 
@@ -20,15 +22,17 @@ fn main() {
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
     };
     let repos = get_repos_we_care_about(&token);
-    let mut pr_links = Vec::<String>::new();
 
-    // prime spot for parallelizing with parallel iterators from rayon:
-    for repo in &repos {
-        match get_release_pr_for(repo, &token) {
-            Some(pr_url) => pr_links.push(pr_url),
-            None => (),
+    let mut pr_links : Vec<Option<String>> = repos.into_par_iter().map(|repo| 
+        match get_release_pr_for(&repo, &token) {
+            Some(pr_url) => Some(pr_url),
+            None => None,
         }
-    }
+    )
+    .collect();
+    // only keep the Some(PR_URL) items:
+    pr_links.retain(|ref maybe_pr_link| maybe_pr_link.is_some());
+
     print_party_links(pr_links);
 }
 
@@ -60,11 +64,14 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> 
     }
 }
 
-fn print_party_links(pr_links: Vec<String>) {
+fn print_party_links(pr_links: Vec<Option<String>>) {
     if pr_links.len() > 0 {
         println!("\nIt's a release party!  PRs to review and approve:");
-        for link in &pr_links {
-            println!("{}", link);
+        for link in pr_links {
+            match link {
+                Some(pr_link) => println!("{}", pr_link),
+                None => println!("Party link is None: this shouldn't happen."),
+            }            
         }
     }
     else {
