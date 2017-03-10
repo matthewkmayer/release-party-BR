@@ -41,11 +41,14 @@ pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, Str
         Ok(new_client) => new_client,
         Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
     };
-    let mut resp = client.get(url)
-        .header(UserAgent(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-        .unwrap();
+    let mut resp = match client.get(url)
+              .header(UserAgent(USERAGENT.to_string()))
+              .header(Authorization(format!("token {}", token)))
+              .send() {
+        Ok(response) => response,
+        Err(e) => return Err(format!("Error in request to github to get repos: {}", e)),
+    };
+
     let mut buffer = String::new();
 
     match resp.read_to_string(&mut buffer) {
@@ -81,11 +84,16 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
             return None;
         }
     };
-    let mut res = client.get(url)
-        .header(UserAgent(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-        .unwrap();
+    let mut res = match client.get(url)
+              .header(UserAgent(USERAGENT.to_string()))
+              .header(Authorization(format!("token {}", token)))
+              .send() {
+        Ok(response) => response,
+        Err(e) => {
+            println!("Error in request to github for existing PR location: {}", e);
+            return None;
+        }
+    };
 
     let mut buffer = String::new();
 
@@ -114,13 +122,18 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<Str
     pr_body.insert("base", "release");
 
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
-    let client = reqwest::Client::new().unwrap();
-    let mut res = client.post(&repo_pr_url)
-        .json(&pr_body)
-        .header(UserAgent(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-        .unwrap();
+    let client = match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
+    };
+    let mut res = match client.post(&repo_pr_url)
+              .json(&pr_body)
+              .header(UserAgent(USERAGENT.to_string()))
+              .header(Authorization(format!("token {}", token)))
+              .send() {
+        Ok(response) => response,
+        Err(e) => return Err(format!("Error in request to github creating new PR: {}", e)),
+    };
 
     if res.status().is_success() {
         let mut buffer = String::new();
