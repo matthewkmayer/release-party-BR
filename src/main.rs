@@ -1,4 +1,6 @@
-#[macro_use]
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -30,7 +32,7 @@ fn main() {
              })
         .collect();
     // only keep the Some(PR_URL) items:
-    pr_links.retain(|ref maybe_pr_link| maybe_pr_link.is_some());
+    pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
 
     print_party_links(pr_links);
 }
@@ -40,24 +42,24 @@ fn get_repos_we_care_about(token: &str) -> Vec<github::GithubRepo> {
         Ok(url) => url,
         Err(e) => panic!(format!("Couldn't get github url to check from {}: {}", GITHUB_ORG_URL, e)),
     };
-    let mut repos = match github::get_repos_at(&github_url, &token) {
+    let mut repos = match github::get_repos_at(&github_url, token) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
     };
     let repos_to_ignore = ignored_repos();
 
     // remove repos we don't care about:
-    repos.retain(|ref repo| !repos_to_ignore.contains(&repo.name));
+    repos.retain(|repo| !repos_to_ignore.contains(&repo.name));
 
     repos
 }
 
 fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
-    match github::existing_release_pr_location(repo, &token) {
+    match github::existing_release_pr_location(repo, token) {
         Some(url) => Some(url),
         None => {
-            match github::create_release_pull_request(repo, &token) {
+            match github::create_release_pull_request(repo, token) {
                 Ok(pr_url) => Some(pr_url),
                 Err(_) => None,
             }
@@ -66,7 +68,7 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> 
 }
 
 fn print_party_links(pr_links: Vec<Option<String>>) {
-    if pr_links.len() > 0 {
+    if !pr_links.is_empty() {
         println!("\nIt's a release party!  PRs to review and approve:");
         for link in pr_links {
             match link {

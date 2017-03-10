@@ -10,3 +10,7 @@ serde_json = "0.9.8"
 serde_derive = "0.9"
 toml = "0.3.0"
 rayon = "0.6.0"
+clippy = {version = "*", optional = true}
+
+[features]
+default = []
