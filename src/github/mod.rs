@@ -32,9 +32,15 @@ pub struct Commit {
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
-    let url = Url::parse_with_params(repos_url, &[("per_page", "75")]).unwrap();
+    let url = match Url::parse_with_params(repos_url, &[("per_page", "75")]) {
+        Ok(new_url) => new_url,
+        Err(e) => return Err(format!("Couldn't create url for getting repo list: {}", e)),
+    };
     println!("Getting repos at {}", url);
-    let client = reqwest::Client::new().unwrap();
+    let client = match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
+    };
     let mut resp = client.get(url)
         .header(UserAgent(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
@@ -61,8 +67,20 @@ fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
 
 pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<String> {
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
-    let url = Url::parse_with_params(&repo_pr_url, &[("head", "master"), ("base", "release")]).unwrap();
-    let client = reqwest::Client::new().unwrap();
+    let url = match Url::parse_with_params(&repo_pr_url, &[("head", "master"), ("base", "release")]) {
+        Ok(new_url) => new_url,
+        Err(e) => {
+            println!("Couldn't create url for existing pr location: {}", e);
+            return None;
+        }
+    };
+    let client = match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => {
+            println!("Couldn't create new reqwest client: {}", e);
+            return None;
+        }
+    };
     let mut res = client.get(url)
         .header(UserAgent(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
