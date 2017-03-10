@@ -23,13 +23,12 @@ fn main() {
     };
     let repos = get_repos_we_care_about(&token);
 
-    let mut pr_links : Vec<Option<String>> = repos.into_par_iter().map(|repo| 
-        match get_release_pr_for(&repo, &token) {
-            Some(pr_url) => Some(pr_url),
-            None => None,
-        }
-    )
-    .collect();
+    let mut pr_links: Vec<Option<String>> = repos.into_par_iter()
+        .map(|repo| match get_release_pr_for(&repo, &token) {
+                 Some(pr_url) => Some(pr_url),
+                 None => None,
+             })
+        .collect();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|ref maybe_pr_link| maybe_pr_link.is_some());
 
@@ -55,12 +54,14 @@ fn get_repos_we_care_about(token: &str) -> Vec<github::GithubRepo> {
 
 fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
-     match github::existing_release_pr_location(repo, &token) {
+    match github::existing_release_pr_location(repo, &token) {
         Some(url) => Some(url),
-        None => match github::create_release_pull_request(repo, &token) {
-                    Ok(pr_url) => Some(pr_url),
-                    Err(_) => None,
-                },
+        None => {
+            match github::create_release_pull_request(repo, &token) {
+                Ok(pr_url) => Some(pr_url),
+                Err(_) => None,
+            }
+        }
     }
 }
 
@@ -71,17 +72,16 @@ fn print_party_links(pr_links: Vec<Option<String>>) {
             match link {
                 Some(pr_link) => println!("{}", pr_link),
                 None => println!("Party link is None: this shouldn't happen."),
-            }            
+            }
         }
-    }
-    else {
+    } else {
         println!("\nNo party today, all releases are done.");
     }
 }
 
 #[derive(Deserialize, Debug)]
 struct IgnoredRepo {
-    ignore: Option<Vec<String>>
+    ignore: Option<Vec<String>>,
 }
 
 fn ignored_repos() -> Vec<String> {
@@ -104,7 +104,8 @@ fn ignored_repos() -> Vec<String> {
     let ignored: IgnoredRepo = match toml::from_str(&buffer) {
         Ok(ignored_repos) => ignored_repos,
         Err(e) => {
-            println!("Couldn't parse toml from ignoredrepos.toml, not ignoring any repos. Reason: {}", e);
+            println!("Couldn't parse toml from ignoredrepos.toml, not ignoring any repos. Reason: {}",
+                     e);
             return Vec::new();
         }
     };

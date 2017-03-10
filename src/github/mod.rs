@@ -13,7 +13,7 @@ static USERAGENT: &'static str = "release-party-br";
 pub struct GithubRepo {
     id: i32,
     pub name: String,
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,13 +22,13 @@ pub struct GithubPullRequest {
     pub url: String,
     pub html_url: String,
     pub head: Commit,
-    pub base: Commit
+    pub base: Commit,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Commit {
     pub sha: String,
-    pub label: String
+    pub label: String,
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
@@ -53,7 +53,7 @@ pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, Str
 
 fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
     // This looks a bit weird due to supplying type hints to deserialize:
-    let _ : Vec<GithubRepo> = match serde_json::from_str(&json_str)  {
+    let _: Vec<GithubRepo> = match serde_json::from_str(&json_str) {
         Ok(v) => return Ok(v),
         Err(e) => return Err(format!("Couldn't deserialize repos from github: {}", e)),
     };
@@ -76,7 +76,7 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
         Err(e) => println!("error finding existing pr for {}: {}", repo.name, e),
     }
 
-    let pull_reqs : Vec<GithubPullRequest> = match serde_json::from_str(&buffer)  {
+    let pull_reqs: Vec<GithubPullRequest> = match serde_json::from_str(&buffer) {
         Ok(v) => v,
         Err(_) => Vec::new(),
     };
@@ -110,7 +110,7 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<Str
             Ok(_) => (),
             Err(e) => println!("error reading response after creating new release PR for {}: {}", repo.name, e),
         }
-        let pull_req : GithubPullRequest = match serde_json::from_str(&buffer)  {
+        let pull_req: GithubPullRequest = match serde_json::from_str(&buffer) {
             Ok(v) => v,
             Err(e) => return Err(format!("Couldn't deserialize create pull req response for {}: {}", repo.name, e)),
         };
