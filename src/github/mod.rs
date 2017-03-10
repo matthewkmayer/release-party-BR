@@ -32,7 +32,7 @@ pub struct Commit {
 }
 
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
-    let url = Url::parse_with_params(&repos_url, &[("per_page", "75")]).unwrap();
+    let url = Url::parse_with_params(repos_url, &[("per_page", "75")]).unwrap();
     println!("Getting repos at {}", url);
     let client = reqwest::Client::new().unwrap();
     let mut resp = client.get(url)
@@ -48,12 +48,12 @@ pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, Str
     }
     // If needed in the future, pagination info is in resp.headers()
 
-    return repo_list_from_string(buffer);
+    repo_list_from_string(&buffer)
 }
 
-fn repo_list_from_string(json_str: String) -> Result<Vec<GithubRepo>, String> {
+fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
     // This looks a bit weird due to supplying type hints to deserialize:
-    let _: Vec<GithubRepo> = match serde_json::from_str(&json_str) {
+    let _: Vec<GithubRepo> = match serde_json::from_str(json_str) {
         Ok(v) => return Ok(v),
         Err(e) => return Err(format!("Couldn't deserialize repos from github: {}", e)),
     };
@@ -81,11 +81,11 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
         Err(_) => Vec::new(),
     };
 
-    if pull_reqs.len() > 0 {
+    if !pull_reqs.is_empty() {
         return Some(pull_reqs[0].html_url.clone());
     }
 
-    return None;
+    None
 }
 
 // Try to create the release PR and return the URL of it:
