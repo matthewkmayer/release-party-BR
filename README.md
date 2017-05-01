@@ -36,6 +36,11 @@ repos ready for a production release.
 
 `RP_ORGURL` - URL of the organization's repo list
 
+### Optional env vars
+
+`RP_DRYRUN` - set to `true` to do a dry-run, which doesn't create pull requests, but lists the ones it would create.
+EG: `RP_DRYRUN=true cargo run`.
+
 ### Optional: repo ignore list
 
 The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
