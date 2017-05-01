@@ -17,6 +17,12 @@ pub struct GithubRepo {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct CompareCommitsResponse {
+    pub status: String,
+    pub behind_by: i32,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct GithubPullRequest {
     id: i32,
     pub url: String,
@@ -31,8 +37,54 @@ pub struct Commit {
     pub label: String,
 }
 
+pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str) -> bool {
+    let repo_pr_url = format!("{}/{}/{}...{}", repo_url, "compare", "master", "release");
+    let url = match Url::parse(&repo_pr_url) {
+        Ok(new_url) => new_url,
+        Err(e) => {
+            println!("Couldn't create url for compare page: {}", e);
+            return true;
+        }
+    };
+    let client = match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => {
+            println!("Couldn't create new reqwest client: {}", e);
+            return true;
+        }
+    };
+    let mut res = match client.get(url.clone())
+              .header(UserAgent(USERAGENT.to_string()))
+              .header(Authorization(format!("token {}", token)))
+              .send() {
+        Ok(response) => response,
+        Err(e) => {
+            println!("Error in request to github for compare page: {}", e);
+            return true;
+        }
+    };
+
+    let mut buffer = String::new();
+
+    match res.read_to_string(&mut buffer) {
+        Ok(_) => (),
+        Err(e) => println!("error checking commit diff for {}: {}", repo_url, e),
+    }
+
+    let commits_diff: CompareCommitsResponse = match serde_json::from_str(&buffer) {
+        Ok(compare_response) => compare_response,
+        Err(_) => return true,
+    };
+
+    if commits_diff.behind_by > 0 {
+        return false;
+    }
+
+    true
+}
+
 pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
-    let url = match Url::parse_with_params(repos_url, &[("per_page", "75")]) {
+    let url = match Url::parse_with_params(repos_url, &[("per_page", "100")]) {
         Ok(new_url) => new_url,
         Err(e) => return Err(format!("Couldn't create url for getting repo list: {}", e)),
     };

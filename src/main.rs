@@ -17,6 +17,7 @@ mod github;
 
 static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
 static GITHUB_ORG_URL: &'static str = "RP_ORGURL";
+static DRYRUN: &'static str = "RP_DRYRUN";
 
 fn main() {
     let token = match get_github_token() {
@@ -59,9 +60,18 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> 
     match github::existing_release_pr_location(repo, token) {
         Some(url) => Some(url),
         None => {
-            match github::create_release_pull_request(repo, token) {
-                Ok(pr_url) => Some(pr_url),
-                Err(_) => None,
+            if !github::is_release_up_to_date_with_master(&repo.url, token) {
+                if dryrun() {
+                    Some(format!("Dry run: {} would get a release PR.", repo.url))
+                }
+                else {
+                    match github::create_release_pull_request(repo, token) {
+                        Ok(pr_url) => Some(pr_url),
+                        Err(_) => None,
+                    }
+                }
+            } else {
+                None
             }
         }
     }
@@ -124,4 +134,11 @@ fn get_github_org_url() -> Result<String, VarError> {
 
 fn get_github_token() -> Result<String, VarError> {
     env::var(GITHUB_TOKEN)
+}
+
+fn dryrun() -> bool {
+    match env::var(DRYRUN) {
+        Ok(dryrun_val) => dryrun_val.parse::<bool>().unwrap_or(false),
+        Err(_) => false
+    }
 }
