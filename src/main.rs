@@ -26,7 +26,8 @@ fn main() {
     };
     let repos = get_repos_we_care_about(&token);
 
-    let mut pr_links: Vec<Option<String>> = repos.into_par_iter()
+    let mut pr_links: Vec<Option<String>> = repos
+        .into_par_iter()
         .map(|repo| match get_release_pr_for(&repo, &token) {
                  Some(pr_url) => Some(pr_url),
                  None => None,
@@ -63,8 +64,7 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> 
             if !github::is_release_up_to_date_with_master(&repo.url, token) {
                 if dryrun() {
                     Some(format!("Dry run: {} would get a release PR.", repo.url))
-                }
-                else {
+                } else {
                     match github::create_release_pull_request(repo, token) {
                         Ok(pr_url) => Some(pr_url),
                         Err(_) => None,
@@ -139,6 +139,6 @@ fn get_github_token() -> Result<String, VarError> {
 fn dryrun() -> bool {
     match env::var(DRYRUN) {
         Ok(dryrun_val) => dryrun_val.parse::<bool>().unwrap_or(false),
-        Err(_) => false
+        Err(_) => false,
     }
 }

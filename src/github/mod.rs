@@ -53,7 +53,8 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str) -> bool {
             return true;
         }
     };
-    let mut res = match client.get(url.clone())
+    let mut res = match client
+              .get(url.clone())
               .header(UserAgent(USERAGENT.to_string()))
               .header(Authorization(format!("token {}", token)))
               .send() {
@@ -93,7 +94,8 @@ pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, Str
         Ok(new_client) => new_client,
         Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
     };
-    let mut resp = match client.get(url)
+    let mut resp = match client
+              .get(url)
               .header(UserAgent(USERAGENT.to_string()))
               .header(Authorization(format!("token {}", token)))
               .send() {
@@ -136,7 +138,8 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
             return None;
         }
     };
-    let mut res = match client.get(url)
+    let mut res = match client
+              .get(url)
               .header(UserAgent(USERAGENT.to_string()))
               .header(Authorization(format!("token {}", token)))
               .send() {
@@ -178,7 +181,8 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<Str
         Ok(new_client) => new_client,
         Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
     };
-    let mut res = match client.post(&repo_pr_url)
+    let mut res = match client
+              .post(&repo_pr_url)
               .json(&pr_body)
               .header(UserAgent(USERAGENT.to_string()))
               .header(Authorization(format!("token {}", token)))
