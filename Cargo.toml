@@ -1,15 +1,15 @@
 [package]
 name = "release-party-br"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Matthew Mayer <matthewkmayer@gmail.com>"]
 
 [dependencies]
-reqwest = "0.4.0"
-serde = "0.9.9"
-serde_json = "0.9.8"
-serde_derive = "0.9"
-toml = "0.3.0"
-rayon = "0.6.0"
+reqwest = "0.6.2"
+serde = "1.0.8"
+serde_derive = "1.0.8"
+serde_json = "1.0.2"
+toml = "0.4.1"
+rayon = "0.7.0"
 clippy = {version = "*", optional = true}
 
 [features]
