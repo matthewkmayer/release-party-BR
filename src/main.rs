@@ -6,6 +6,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 extern crate rayon;
+extern crate reqwest;
 
 use std::env;
 use std::env::VarError;
@@ -24,11 +25,16 @@ fn main() {
         Ok(gh_token) => gh_token,
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
     };
-    let repos = get_repos_we_care_about(&token);
+    let reqwest_client = match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => panic!("Couldn't create new reqwest client: {}", e),
+    };
+
+    let repos = get_repos_we_care_about(&token, &reqwest_client);
 
     let mut pr_links: Vec<Option<String>> = repos
         .into_par_iter()
-        .map(|repo| match get_release_pr_for(&repo, &token) {
+        .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client) {
                  Some(pr_url) => Some(pr_url),
                  None => None,
              })
@@ -39,12 +45,12 @@ fn main() {
     print_party_links(pr_links);
 }
 
-fn get_repos_we_care_about(token: &str) -> Vec<github::GithubRepo> {
+fn get_repos_we_care_about(token: &str, reqwest_client: &reqwest::Client) -> Vec<github::GithubRepo> {
     let github_url = match get_github_org_url() {
         Ok(url) => url,
         Err(e) => panic!(format!("Couldn't get github url to check from {}: {}", GITHUB_ORG_URL, e)),
     };
-    let mut repos = match github::get_repos_at(&github_url, token) {
+    let mut repos = match github::get_repos_at(&github_url, token, reqwest_client) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
     };
@@ -56,16 +62,16 @@ fn get_repos_we_care_about(token: &str) -> Vec<github::GithubRepo> {
     repos
 }
 
-fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> {
+fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::Client) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
-    match github::existing_release_pr_location(repo, token) {
+    match github::existing_release_pr_location(repo, token, client) {
         Some(url) => Some(url),
         None => {
-            if !github::is_release_up_to_date_with_master(&repo.url, token) {
+            if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
                 if dryrun() {
                     Some(format!("Dry run: {} would get a release PR.", repo.url))
                 } else {
-                    match github::create_release_pull_request(repo, token) {
+                    match github::create_release_pull_request(repo, token, client) {
                         Ok(pr_url) => Some(pr_url),
                         Err(_) => None,
                     }
