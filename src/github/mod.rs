@@ -37,19 +37,12 @@ pub struct Commit {
     pub label: String,
 }
 
-pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str) -> bool {
+pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &reqwest::Client) -> bool {
     let repo_pr_url = format!("{}/{}/{}...{}", repo_url, "compare", "master", "release");
     let url = match Url::parse(&repo_pr_url) {
         Ok(new_url) => new_url,
         Err(e) => {
             println!("Couldn't create url for compare page: {}", e);
-            return true;
-        }
-    };
-    let client = match reqwest::Client::new() {
-        Ok(new_client) => new_client,
-        Err(e) => {
-            println!("Couldn't create new reqwest client: {}", e);
             return true;
         }
     };
@@ -118,19 +111,12 @@ fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
     };
 }
 
-pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<String> {
+pub fn existing_release_pr_location(repo: &GithubRepo, token: &str, client: &reqwest::Client) -> Option<String> {
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
     let url = match Url::parse_with_params(&repo_pr_url, &[("head", "master"), ("base", "release")]) {
         Ok(new_url) => new_url,
         Err(e) => {
             println!("Couldn't create url for existing pr location: {}", e);
-            return None;
-        }
-    };
-    let client = match reqwest::Client::new() {
-        Ok(new_client) => new_client,
-        Err(e) => {
-            println!("Couldn't create new reqwest client: {}", e);
             return None;
         }
     };
@@ -166,17 +152,13 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str) -> Option<St
 }
 
 // Try to create the release PR and return the URL of it:
-pub fn create_release_pull_request(repo: &GithubRepo, token: &str) -> Result<String, String> {
+pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqwest::Client) -> Result<String, String> {
     let mut pr_body = HashMap::new();
     pr_body.insert("title", "automated release partay");
     pr_body.insert("head", "master");
     pr_body.insert("base", "release");
 
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
-    let client = match reqwest::Client::new() {
-        Ok(new_client) => new_client,
-        Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
-    };
     let mut res = match client
               .post(&repo_pr_url)
               .json(&pr_body)

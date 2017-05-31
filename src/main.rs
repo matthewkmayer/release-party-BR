@@ -34,7 +34,7 @@ fn main() {
 
     let mut pr_links: Vec<Option<String>> = repos
         .into_par_iter()
-        .map(|repo| match get_release_pr_for(&repo, &token) {
+        .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client) {
                  Some(pr_url) => Some(pr_url),
                  None => None,
              })
@@ -62,16 +62,16 @@ fn get_repos_we_care_about(token: &str, reqwest_client: &reqwest::Client) -> Vec
     repos
 }
 
-fn get_release_pr_for(repo: &github::GithubRepo, token: &str) -> Option<String> {
+fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::Client) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
-    match github::existing_release_pr_location(repo, token) {
+    match github::existing_release_pr_location(repo, token, client) {
         Some(url) => Some(url),
         None => {
-            if !github::is_release_up_to_date_with_master(&repo.url, token) {
+            if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
                 if dryrun() {
                     Some(format!("Dry run: {} would get a release PR.", repo.url))
                 } else {
-                    match github::create_release_pull_request(repo, token) {
+                    match github::create_release_pull_request(repo, token, client) {
                         Ok(pr_url) => Some(pr_url),
                         Err(_) => None,
                     }
