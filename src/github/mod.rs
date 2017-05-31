@@ -84,16 +84,12 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str) -> bool {
     true
 }
 
-pub fn get_repos_at(repos_url: &str, token: &str) -> Result<Vec<GithubRepo>, String> {
+pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> Result<Vec<GithubRepo>, String> {
     let url = match Url::parse_with_params(repos_url, &[("per_page", "100")]) {
         Ok(new_url) => new_url,
         Err(e) => return Err(format!("Couldn't create url for getting repo list: {}", e)),
     };
     println!("Getting repos at {}", url);
-    let client = match reqwest::Client::new() {
-        Ok(new_client) => new_client,
-        Err(e) => return Err(format!("Couldn't create new reqwest client: {}", e)),
-    };
     let mut resp = match client
               .get(url)
               .header(UserAgent(USERAGENT.to_string()))
