@@ -7,12 +7,14 @@ extern crate serde_derive;
 extern crate toml;
 extern crate rayon;
 extern crate reqwest;
+extern crate clap;
 
 use std::env;
 use std::env::VarError;
 use std::io::prelude::*;
 use std::fs::File;
 use rayon::prelude::*;
+use clap::{Arg, App};
 
 mod github;
 
@@ -21,6 +23,29 @@ static GITHUB_ORG_URL: &'static str = "RP_ORGURL";
 static DRYRUN: &'static str = "RP_DRYRUN";
 
 fn main() {
+    let matches = App::new("release-party-br")
+        .version("0.2.0")
+        .author("Matthew Mayer <matthewkmayer@gmail.com>")
+        .about("Release party automation")
+        .arg(Arg::with_name("ORG_URL")
+            .short("o")
+            .long("org_url")
+            .value_name("github url")
+            .help("Github org url to use.")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::with_name("DRYRUN")
+            .short("d")
+            .long("dryrun")
+            .help("dryrun - don't actually create PRs"))
+        .get_matches();
+        
+    let org_url = matches.value_of("ORG_URL").expect("Please specify a github org");
+    let dryrun = if matches.is_present("DRYRUN") { true } else { false };
+    println!("org_url is {}", org_url);
+    println!("dryrun is {}", dryrun);
+    panic!("boop");
+
     let token = match get_github_token() {
         Ok(gh_token) => gh_token,
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
