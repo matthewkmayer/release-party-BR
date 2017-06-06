@@ -22,24 +22,23 @@ repos ready for a production release.
 
 ### Compile and run
 
-`RP_GITHUBTOKEN=your_personal_token_here RP_ORGURL="https://api.github.com/orgs/ORGHERE/repos" cargo run`
+`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org_url "https://api.github.com/orgs/ORGHERE/repos"`
 
 ### Compile then run
 
 `cargo build`
 
-`RP_GITHUBTOKEN=your_personal_token_here RP_ORGURL="https://api.github.com/orgs/ORGHERE/repos" ./target/debug/release-party-br`
+`RP_GITHUBTOKEN=your_personal_token_here ./target/debug/release-party-br --org_url "https://api.github.com/orgs/ORGHERE/repos"`
 
 ### Required environment variables
 
 `RP_GITHUBTOKEN` - a personal access token to Github
 
-`RP_ORGURL` - URL of the organization's repo list
+### Optional: dry-run
 
-### Optional env vars
+Say what PRs to create without actually creating them:
 
-`RP_DRYRUN` - set to `true` to do a dry-run, which doesn't create pull requests, but lists the ones it would create.
-EG: `RP_DRYRUN=true cargo run`.
+`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org_url "https://api.github.com/orgs/ORGHERE/repos" --dry-run`
 
 ### Optional: repo ignore list
 
