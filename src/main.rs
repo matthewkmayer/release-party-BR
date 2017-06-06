@@ -57,6 +57,8 @@ fn main() {
 
     let repos = get_repos_we_care_about(&token, &org_url, &reqwest_client);
 
+    // branch here, yolo vs not?
+
     let mut pr_links: Vec<Option<String>> = repos
         .into_par_iter()
         .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client, dryrun) {
