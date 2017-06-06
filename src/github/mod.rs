@@ -37,6 +37,50 @@ pub struct Commit {
     pub label: String,
 }
 
+pub fn create_pr_review(token: &str, pr_link: &str, client: &reqwest::Client) -> Result<String, String> {
+    // POST /repos/:owner/:repo/pulls/:number/reviews
+    let repo_pr_review_url = format!("{}/reviews", pr_link);
+    let mut review_body = HashMap::new();
+    review_body.insert("body", "LEEROY JENKINS");
+    review_body.insert("event", "APPROVE");
+
+    let mut res = match client
+              .post(&repo_pr_review_url)
+              .json(&review_body)
+              .header(UserAgent(USERAGENT.to_string()))
+              .header(Authorization(format!("token {}", token)))
+              .send() {
+        Ok(response) => response,
+        Err(e) => return Err(format!("Error in request to github creating new PR review: {}", e)),
+    };
+
+    println!("res is {:?}", res);
+
+    if res.status().is_success() {
+        let mut buffer = String::new();
+        match res.read_to_string(&mut buffer) {
+            Ok(_) => (),
+            Err(e) => println!("error reading response after creating new PR review for {}: {}", repo_pr_review_url, e),
+        }
+        println!("buffer is {}", buffer);
+        // let pull_req: GithubPullRequest = match serde_json::from_str(&buffer) {
+        //     Ok(v) => v,
+        //     Err(e) => return Err(format!("Couldn't deserialize create pull req response for {}: {}", repo.name, e)),
+        // };
+        // return Ok(pull_req.html_url);
+    }
+
+    Err("Response wasn't a success.".to_string())
+}
+
+pub fn submit_pr_review(token: &str, pr_link: &str, client: &reqwest::Client) -> Result<String, String> {
+    Ok("hi".to_string())
+}
+
+pub fn merge_pr(token: &str, pr_link: &str, client: &reqwest::Client) -> Result<String, String> {
+    Ok("hi".to_string())
+}
+
 pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &reqwest::Client) -> bool {
     let repo_pr_url = format!("{}/{}/{}...{}", repo_url, "compare", "master", "release");
     let url = match Url::parse(&repo_pr_url) {

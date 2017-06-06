@@ -36,10 +36,17 @@ fn main() {
             .short("d")
             .long("dry-run")
             .help("dry-run - don't actually create PRs"))
+        .arg(Arg::with_name("YOLO")
+            .long("yolo")
+            .help("yolo - merge PRs without reviewing"))
         .get_matches();
 
     let org_url = matches.value_of("ORG_URL").expect("Please specify a github org");
     let dryrun = if matches.is_present("DRYRUN") { true } else { false };
+    let yolo = if matches.is_present("YOLO") { true } else { false };
+    if yolo {
+        println!("LEEROY JENKINS");
+    }
 
     let token = match get_github_token() {
         Ok(gh_token) => gh_token,
@@ -62,6 +69,21 @@ fn main() {
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
 
+    if yolo {
+        // approve and merge existing PRs
+        // TODO: how to handle ones we created thus can't approve?
+        // https://developer.github.com/v3/pulls/reviews/#create-a-pull-request-review
+        // https://developer.github.com/v3/pulls/reviews/#submit-a-pull-request-review
+        // https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button
+        for pr_link in pr_links.iter() {
+            match *pr_link {
+                Some(ref a_link) => approve_and_merge(&token, a_link, &reqwest_client),
+                _ => println!("nada"),
+            }
+        }
+        println!("should have tried to approve and merge.");
+    }
+
     print_party_links(pr_links);
 }
 
@@ -76,6 +98,31 @@ fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &r
     repos.retain(|repo| !repos_to_ignore.contains(&repo.name));
 
     repos
+}
+
+fn approve_and_merge(token: &str, pr_link: &str, client: &reqwest::Client) {
+    println!("Yolo merging PR: {}", pr_link);
+    let review_link = match github::create_pr_review(token, pr_link, client) {
+        Ok(review_link) => Some(review_link),
+        Err(e) => {
+            println!("error creating pr review: {}", e);
+            None
+        }
+    };
+    println!("Review link is {:?}", review_link);
+    match review_link {
+        Some(review_link) => {
+            match github::submit_pr_review(token, &review_link, client) {
+                Ok(_) => (),
+                Err(e) => println!("error submitting pr review: {}", e),
+            }
+            match github::merge_pr(token, pr_link, client) {
+                Ok(_) => (),
+                Err(e) => println!("error merging pr: {}", e),
+            }
+        },
+        None => ()
+    }
 }
 
 fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::Client, dryrun: bool) -> Option<String> {

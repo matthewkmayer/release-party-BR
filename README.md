@@ -45,6 +45,12 @@ Say what PRs to create without actually creating them:
 The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
 for an example.
 
+### Optional: yolo
+
+Don't want to go through the trouble of reviewing PRs?  Mash them through with `--yolo`.
+
+`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org_url "https://api.github.com/orgs/ORGHERE/repos" --yolo`
+
 ### Optional: compile in release mode
 
 Run `cargo build --release` to create a release binary.  This will run faster than a debug build.  The binary will be created at 
