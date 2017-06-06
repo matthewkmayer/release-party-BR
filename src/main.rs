@@ -44,9 +44,7 @@ fn main() {
     let org_url = matches.value_of("ORG_URL").expect("Please specify a github org");
     let dryrun = if matches.is_present("DRYRUN") { true } else { false };
     let yolo = if matches.is_present("YOLO") { true } else { false };
-    if yolo {
-        println!("LEEROY JENKINS");
-    }
+    if yolo { println!("LEEROY JENKINS"); }
 
     let token = match get_github_token() {
         Ok(gh_token) => gh_token,
@@ -75,11 +73,8 @@ fn main() {
         // https://developer.github.com/v3/pulls/reviews/#create-a-pull-request-review
         // https://developer.github.com/v3/pulls/reviews/#submit-a-pull-request-review
         // https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button
-        for pr_link in pr_links.iter() {
-            match *pr_link {
-                Some(ref a_link) => approve_and_merge(&token, a_link, &reqwest_client),
-                _ => println!("nada"),
-            }
+        for repo in repos.iter() {
+            approve_and_merge(&token, repo, &reqwest_client);
         }
         println!("should have tried to approve and merge.");
     }
@@ -100,9 +95,8 @@ fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &r
     repos
 }
 
-fn approve_and_merge(token: &str, pr_link: &str, client: &reqwest::Client) {
-    println!("Yolo merging PR: {}", pr_link);
-    let review_link = match github::create_pr_review(token, pr_link, client) {
+fn approve_and_merge(token: &str, repo: &github::GithubRepo, client: &reqwest::Client) {
+    let review_link = match github::create_pr_review(token, repo, client) {
         Ok(review_link) => Some(review_link),
         Err(e) => {
             println!("error creating pr review: {}", e);
@@ -116,7 +110,7 @@ fn approve_and_merge(token: &str, pr_link: &str, client: &reqwest::Client) {
                 Ok(_) => (),
                 Err(e) => println!("error submitting pr review: {}", e),
             }
-            match github::merge_pr(token, pr_link, client) {
+            match github::merge_pr(token, &review_link, client) {
                 Ok(_) => (),
                 Err(e) => println!("error merging pr: {}", e),
             }

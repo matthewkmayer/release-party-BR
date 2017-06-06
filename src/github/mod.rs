@@ -37,12 +37,13 @@ pub struct Commit {
     pub label: String,
 }
 
-pub fn create_pr_review(token: &str, pr_link: &str, client: &reqwest::Client) -> Result<String, String> {
+pub fn create_pr_review(token: &str, repo: &GithubRepo, client: &reqwest::Client) -> Result<String, String> {
     // POST /repos/:owner/:repo/pulls/:number/reviews
-    let repo_pr_review_url = format!("{}/reviews", pr_link);
+    let repo_pr_review_url = format!("{}/reviews", repo.url);
     let mut review_body = HashMap::new();
     review_body.insert("body", "LEEROY JENKINS");
     review_body.insert("event", "APPROVE");
+    println!("repo pr url is {}", repo_pr_review_url);
 
     let mut res = match client
               .post(&repo_pr_review_url)
