@@ -27,7 +27,7 @@ fn main() {
         .about("Release party automation")
         .arg(Arg::with_name("ORG_URL")
             .short("o")
-            .long("org_url")
+            .long("org-url")
             .value_name("github url")
             .help("Github org url to use.")
             .takes_value(true)
