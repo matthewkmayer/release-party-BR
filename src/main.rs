@@ -25,11 +25,11 @@ fn main() {
         .version("0.2.0")
         .author("Matthew Mayer <matthewkmayer@gmail.com>")
         .about("Release party automation")
-        .arg(Arg::with_name("ORG_URL")
+        .arg(Arg::with_name("ORG")
             .short("o")
-            .long("org-url")
-            .value_name("github url")
-            .help("Github org url to use.")
+            .long("org")
+            .value_name("github org")
+            .help("Github org")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("DRYRUN")
@@ -38,7 +38,8 @@ fn main() {
             .help("dry-run - don't actually create PRs"))
         .get_matches();
 
-    let org_url = matches.value_of("ORG_URL").expect("Please specify a github org");
+    let org = matches.value_of("ORG").expect("Please specify a github org");
+    let org_url = format!("https://api.github.com/orgs/{}/repos", org);
     let dryrun = if matches.is_present("DRYRUN") { true } else { false };
 
     let token = match get_github_token() {
