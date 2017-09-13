@@ -6,7 +6,6 @@ use self::reqwest::{Error, Response, Url};
 
 use std::io::Read;
 use std::collections::HashMap;
-use std::{thread, time};
 
 static USERAGENT: &'static str = "release-party-br";
 
@@ -143,8 +142,6 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
 
     if response_has_a_next_link(response.headers()) {
         loop {
-            thread::sleep(time::Duration::from_millis(1500));
-
             let paging_url = response_next_link(response.headers()).expect("a thing");
             response = get_repos_at_url(paging_url, token, client).expect("request failed");
 
