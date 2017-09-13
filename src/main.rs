@@ -21,7 +21,7 @@ static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
 
 fn main() {
     let matches = App::new("release-party-br")
-        .version("0.2.0")
+        .version("0.3.0")
         .author("Matthew Mayer <matthewkmayer@gmail.com>")
         .about("Release party automation")
         .arg(
