@@ -1,11 +1,12 @@
 extern crate reqwest;
 extern crate serde_json;
 
-use self::reqwest::header::{Authorization, UserAgent};
-use self::reqwest::Url;
+use self::reqwest::header::{Authorization, Link, UserAgent};
+use self::reqwest::{Error, Response, Url};
 
 use std::io::Read;
 use std::collections::HashMap;
+use std::{thread, time};
 
 static USERAGENT: &'static str = "release-party-br";
 
@@ -48,7 +49,8 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
     };
     let mut res = match client
         .get(url.clone())
-        .header(UserAgent(USERAGENT.to_string()))
+        .expect("Couldn't make a request builder for comparison page url")
+        .header(UserAgent::new(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
         .send()
     {
@@ -78,31 +80,96 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
     true
 }
 
-pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> Result<Vec<GithubRepo>, String> {
-    let url = match Url::parse_with_params(repos_url, &[("per_page", "100")]) {
-        Ok(new_url) => new_url,
-        Err(e) => return Err(format!("Couldn't create url for getting repo list: {}", e)),
-    };
-    println!("Getting repos at {}", url);
-    let mut resp = match client
-        .get(url)
-        .header(UserAgent(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
+fn response_has_a_next_link(response_headers: &reqwest::header::Headers) -> bool {
+    if response_headers.get::<Link>().is_none() {
+        return false;
+    }
+    for link in response_headers
+        .get::<Link>()
+        .expect("links in has next")
+        .values()
     {
-        Ok(response) => response,
-        Err(e) => return Err(format!("Error in request to github to get repos: {}", e)),
+        let next_link = link.rel();
+        match next_link {
+            Some(v) => {
+                let link_something = v.first().expect("should have value in links headers");
+                if link_something == &reqwest::header::RelationType::Next {
+                    return true;
+                }
+            }
+            None => return false,
+        }
+    }
+    false
+}
+
+// Expects caller to check to ensure the `next` link is present
+fn response_next_link(response_headers: &reqwest::header::Headers) -> Result<Url, String> {
+    for link in response_headers
+        .get::<Link>()
+        .expect("links in response next")
+        .values()
+    {
+        let next_link = link.rel();
+        match next_link {
+            Some(v) => {
+                let link_something = v.first().expect("should have value in links headers");
+                if link_something == &reqwest::header::RelationType::Next {
+                    let uri = Url::parse(link.link()).expect("Should have been able to parse the nextlink");
+                    return Ok(uri);
+                }
+            }
+            None => (),
+        }
+    }
+    Err("Couldn't find a next link: does it exist?".to_string())
+}
+
+pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> Result<Vec<GithubRepo>, String> {
+    // We need to pass in the URL from the link headers to github API docs.
+    // We'll construct it this first time.
+    let url = match Url::parse_with_params(repos_url, &[("per_page", "50")]) {
+        Ok(new_url) => new_url,
+        Err(e) => return Err(format!("Couldn't parse uri {:?} : {:?}", repos_url, e)),
     };
+    let mut response = get_repos_at_url(url, token, client).expect("request failed");
 
     let mut buffer = String::new();
-
-    match resp.read_to_string(&mut buffer) {
+    match response.read_to_string(&mut buffer) {
         Ok(_) => (),
         Err(e) => println!("error reading response from github when getting repo list: {}", e),
     }
-    // If needed in the future, pagination info is in resp.headers()
+    let mut repos = repo_list_from_string(&buffer).expect("expected repos");
 
-    repo_list_from_string(&buffer)
+    if response_has_a_next_link(response.headers()) {
+        loop {
+            thread::sleep(time::Duration::from_millis(1500));
+
+            let paging_url = response_next_link(response.headers()).expect("a thing");
+            response = get_repos_at_url(paging_url, token, client).expect("request failed");
+
+            buffer = String::new();
+            match response.read_to_string(&mut buffer) {
+                Ok(_) => (),
+                Err(e) => println!("error reading response from github when getting repo list: {}", e),
+            }
+            repos.append(&mut repo_list_from_string(&buffer).expect("expected repos"));
+            if !response_has_a_next_link(response.headers()) {
+                break;
+            }
+        }
+    }
+    println!("Number of repos to check: {:?}", repos.len());
+    Ok(repos)
+}
+
+fn get_repos_at_url(url: reqwest::Url, token: &str, client: &reqwest::Client) -> Result<Response, Error> {
+    client
+        .get(url)
+        .expect("Couldn't make a request builder for repos page url")
+        .header(UserAgent::new(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
 }
 
 fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
@@ -124,7 +191,8 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str, client: &req
     };
     let mut res = match client
         .get(url)
-        .header(UserAgent(USERAGENT.to_string()))
+        .expect("Couldn't make a request builder for existing PRs page url")
+        .header(UserAgent::new(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
         .send()
     {
@@ -164,9 +232,11 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
     let mut res = match client
         .post(&repo_pr_url)
-        .json(&pr_body)
-        .header(UserAgent(USERAGENT.to_string()))
+        .expect("Couldn't make a request builder for creating PR url")
+        .header(UserAgent::new(USERAGENT.to_string()))
         .header(Authorization(format!("token {}", token)))
+        .json(&pr_body)
+        .expect("Couldn't make the JSON payload for creating a PR")
         .send()
     {
         Ok(response) => response,
