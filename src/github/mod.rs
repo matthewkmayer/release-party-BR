@@ -6,6 +6,7 @@ use self::reqwest::{Error, Response, Url};
 
 use std::io::Read;
 use std::collections::HashMap;
+use std::{thread, time};
 
 static USERAGENT: &'static str = "release-party-br";
 
@@ -78,6 +79,17 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
     true
 }
 
+fn delay_if_running_out_of_requests(response_headers: &reqwest::header::Headers) {
+    if close_to_running_out_of_requests(response_headers) {
+        thread::sleep(time::Duration::from_millis(1000));
+    }
+}
+
+fn close_to_running_out_of_requests(response_headers: &reqwest::header::Headers) -> bool {
+    // do a get_raw for X-RateLimit-Remaining ?
+    false
+}
+
 fn response_has_a_next_link(response_headers: &reqwest::header::Headers) -> bool {
     if response_headers.get::<Link>().is_none() {
         return false;
@@ -131,7 +143,7 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
         Err(e) => return Err(format!("Couldn't parse uri {:?} : {:?}", repos_url, e)),
     };
     let mut response = get_repos_at_url(url, token, client).expect("request failed");
-    // Check rate limit headers in response
+    delay_if_running_out_of_requests(response.headers());
     let mut buffer = String::new();
     match response.read_to_string(&mut buffer) {
         Ok(_) => (),
@@ -143,7 +155,7 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
         loop {
             let paging_url = response_next_link(response.headers()).expect("a thing");
             response = get_repos_at_url(paging_url, token, client).expect("request failed");
-            // Check rate limit headers in response
+            delay_if_running_out_of_requests(response.headers());
             buffer = String::new();
             match response.read_to_string(&mut buffer) {
                 Ok(_) => (),
@@ -198,7 +210,7 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str, client: &req
             return None;
         }
     };
-    // Check rate limit headers in response
+    delay_if_running_out_of_requests(res.headers());
     let mut buffer = String::new();
     match res.read_to_string(&mut buffer) {
         Ok(_) => (),
@@ -238,7 +250,7 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
         Err(e) => return Err(format!("Error in request to github creating new PR: {}", e)),
     };
 
-    // Check rate limit headers in response
+    delay_if_running_out_of_requests(res.headers());
     if res.status().is_success() {
         let mut buffer = String::new();
         match res.read_to_string(&mut buffer) {
