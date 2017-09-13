@@ -47,10 +47,11 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
         }
     };
     let mut res = match client
-              .get(url.clone())
-              .header(UserAgent(USERAGENT.to_string()))
-              .header(Authorization(format!("token {}", token)))
-              .send() {
+        .get(url.clone())
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+    {
         Ok(response) => response,
         Err(e) => {
             println!("Error in request to github for compare page: {}", e);
@@ -84,10 +85,11 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
     };
     println!("Getting repos at {}", url);
     let mut resp = match client
-              .get(url)
-              .header(UserAgent(USERAGENT.to_string()))
-              .header(Authorization(format!("token {}", token)))
-              .send() {
+        .get(url)
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+    {
         Ok(response) => response,
         Err(e) => return Err(format!("Error in request to github to get repos: {}", e)),
     };
@@ -121,10 +123,11 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str, client: &req
         }
     };
     let mut res = match client
-              .get(url)
-              .header(UserAgent(USERAGENT.to_string()))
-              .header(Authorization(format!("token {}", token)))
-              .send() {
+        .get(url)
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+    {
         Ok(response) => response,
         Err(e) => {
             println!("Error in request to github for existing PR location: {}", e);
@@ -160,11 +163,12 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
 
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
     let mut res = match client
-              .post(&repo_pr_url)
-              .json(&pr_body)
-              .header(UserAgent(USERAGENT.to_string()))
-              .header(Authorization(format!("token {}", token)))
-              .send() {
+        .post(&repo_pr_url)
+        .json(&pr_body)
+        .header(UserAgent(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+    {
         Ok(response) => response,
         Err(e) => return Err(format!("Error in request to github creating new PR: {}", e)),
     };
@@ -177,7 +181,13 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
         }
         let pull_req: GithubPullRequest = match serde_json::from_str(&buffer) {
             Ok(v) => v,
-            Err(e) => return Err(format!("Couldn't deserialize create pull req response for {}: {}", repo.name, e)),
+            Err(e) => {
+                return Err(format!(
+                    "Couldn't deserialize create pull req response for {}: {}",
+                    repo.name,
+                    e
+                ))
+            }
         };
         return Ok(pull_req.html_url);
     }

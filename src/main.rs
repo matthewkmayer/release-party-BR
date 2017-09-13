@@ -1,20 +1,20 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
 
+extern crate clap;
+extern crate rayon;
+extern crate reqwest;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
-extern crate rayon;
-extern crate reqwest;
-extern crate clap;
 
 use std::env;
 use std::env::VarError;
 use std::io::prelude::*;
 use std::fs::File;
 use rayon::prelude::*;
-use clap::{Arg, App};
+use clap::{App, Arg};
 
 mod github;
 
@@ -25,22 +25,32 @@ fn main() {
         .version("0.2.0")
         .author("Matthew Mayer <matthewkmayer@gmail.com>")
         .about("Release party automation")
-        .arg(Arg::with_name("ORG")
-            .short("o")
-            .long("org")
-            .value_name("github org")
-            .help("Github org")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("DRYRUN")
-            .short("d")
-            .long("dry-run")
-            .help("dry-run - don't actually create PRs"))
+        .arg(
+            Arg::with_name("ORG")
+                .short("o")
+                .long("org")
+                .value_name("github org")
+                .help("Github org")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("DRYRUN")
+                .short("d")
+                .long("dry-run")
+                .help("dry-run - don't actually create PRs"),
+        )
         .get_matches();
 
-    let org = matches.value_of("ORG").expect("Please specify a github org");
+    let org = matches
+        .value_of("ORG")
+        .expect("Please specify a github org");
     let org_url = format!("https://api.github.com/orgs/{}/repos", org);
-    let dryrun = if matches.is_present("DRYRUN") { true } else { false };
+    let dryrun = if matches.is_present("DRYRUN") {
+        true
+    } else {
+        false
+    };
 
     let token = match get_github_token() {
         Ok(gh_token) => gh_token,
@@ -56,9 +66,9 @@ fn main() {
     let mut pr_links: Vec<Option<String>> = repos
         .into_par_iter()
         .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client, dryrun) {
-                 Some(pr_url) => Some(pr_url),
-                 None => None,
-             })
+            Some(pr_url) => Some(pr_url),
+            None => None,
+        })
         .collect();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
@@ -83,20 +93,18 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::
     println!("looking for release PR for {}", repo.name);
     match github::existing_release_pr_location(repo, token, client) {
         Some(url) => Some(url),
-        None => {
-            if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
-                if dryrun {
-                    Some(format!("Dry run: {} would get a release PR.", repo.url))
-                } else {
-                    match github::create_release_pull_request(repo, token, client) {
-                        Ok(pr_url) => Some(pr_url),
-                        Err(_) => None,
-                    }
-                }
+        None => if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
+            if dryrun {
+                Some(format!("Dry run: {} would get a release PR.", repo.url))
             } else {
-                None
+                match github::create_release_pull_request(repo, token, client) {
+                    Ok(pr_url) => Some(pr_url),
+                    Err(_) => None,
+                }
             }
-        }
+        } else {
+            None
+        },
     }
 }
 
@@ -139,8 +147,10 @@ fn ignored_repos() -> Vec<String> {
     let ignored: IgnoredRepo = match toml::from_str(&buffer) {
         Ok(ignored_repos) => ignored_repos,
         Err(e) => {
-            println!("Couldn't parse toml from ignoredrepos.toml, not ignoring any repos. Reason: {}",
-                     e);
+            println!(
+                "Couldn't parse toml from ignoredrepos.toml, not ignoring any repos. Reason: {}",
+                e
+            );
             return Vec::new();
         }
     };
