@@ -59,9 +59,8 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
             return true;
         }
     };
-
+    // Check rate limit headers in response
     let mut buffer = String::new();
-
     match res.read_to_string(&mut buffer) {
         Ok(_) => (),
         Err(e) => println!("error checking commit diff for {}: {}", repo_url, e),
@@ -132,7 +131,7 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
         Err(e) => return Err(format!("Couldn't parse uri {:?} : {:?}", repos_url, e)),
     };
     let mut response = get_repos_at_url(url, token, client).expect("request failed");
-
+    // Check rate limit headers in response
     let mut buffer = String::new();
     match response.read_to_string(&mut buffer) {
         Ok(_) => (),
@@ -144,7 +143,7 @@ pub fn get_repos_at(repos_url: &str, token: &str, client: &reqwest::Client) -> R
         loop {
             let paging_url = response_next_link(response.headers()).expect("a thing");
             response = get_repos_at_url(paging_url, token, client).expect("request failed");
-
+            // Check rate limit headers in response
             buffer = String::new();
             match response.read_to_string(&mut buffer) {
                 Ok(_) => (),
@@ -199,9 +198,8 @@ pub fn existing_release_pr_location(repo: &GithubRepo, token: &str, client: &req
             return None;
         }
     };
-
+    // Check rate limit headers in response
     let mut buffer = String::new();
-
     match res.read_to_string(&mut buffer) {
         Ok(_) => (),
         Err(e) => println!("error finding existing pr for {}: {}", repo.name, e),
@@ -240,6 +238,7 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
         Err(e) => return Err(format!("Error in request to github creating new PR: {}", e)),
     };
 
+    // Check rate limit headers in response
     if res.status().is_success() {
         let mut buffer = String::new();
         match res.read_to_string(&mut buffer) {
