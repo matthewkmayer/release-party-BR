@@ -81,13 +81,31 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
 
 fn delay_if_running_out_of_requests(response_headers: &reqwest::header::Headers) {
     if close_to_running_out_of_requests(response_headers) {
+        println!("Running low on requests, throttling back...");
         thread::sleep(time::Duration::from_millis(1000));
     }
 }
 
+// This is a bit simplistic at the moment by trying to prevent bottoming out completely.
+// An improvement could be to use the fraction of requests left over the overall limit.
+// EG: 55 requests left out of a limit of 60 is fine.
+// 10 requests left out of 60 is time to throttle back.
+// TODO: dump the `expects` and handle things more gracefully.
 fn close_to_running_out_of_requests(response_headers: &reqwest::header::Headers) -> bool {
-    // do a get_raw for X-RateLimit-Remaining ?
-    false
+    let requests_to_treat_as_running_out = 10;
+    let remaining_requests = match response_headers.get_raw("X-RateLimit-Remaining") {
+        Some(remaining_req_from_github) => {
+            let req_left = String::from_utf8(remaining_req_from_github.one()
+                .expect("Should have a single entry for X-RateLimit-Remaining")
+                .to_vec())
+                .expect("Should be able to parse slice as string")
+                .replace('"', ""); // the formatter puts quotes around the number.  EG: "55"
+            req_left.parse::<i32>().expect("Expected number in X-RateLimit-Remaining field")
+        },
+        // If it's not specified, we'll say we have enough to keep going:
+        None => requests_to_treat_as_running_out + 1,
+    };
+    remaining_requests < requests_to_treat_as_running_out
 }
 
 fn response_has_a_next_link(response_headers: &reqwest::header::Headers) -> bool {
