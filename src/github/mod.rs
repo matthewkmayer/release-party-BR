@@ -60,7 +60,8 @@ pub fn is_release_up_to_date_with_master(repo_url: &str, token: &str, client: &r
             return true;
         }
     };
-    // Check rate limit headers in response
+    delay_if_running_out_of_requests(res.headers());
+
     let mut buffer = String::new();
     match res.read_to_string(&mut buffer) {
         Ok(_) => (),
