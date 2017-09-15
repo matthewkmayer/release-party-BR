@@ -2,7 +2,6 @@
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 
 extern crate clap;
-extern crate rayon;
 extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
@@ -12,7 +11,6 @@ use std::env;
 use std::env::VarError;
 use std::io::prelude::*;
 use std::fs::File;
-use rayon::prelude::*;
 use clap::{App, Arg};
 
 mod github;
@@ -63,7 +61,7 @@ fn main() {
     let repos = get_repos_we_care_about(&token, &org_url, &reqwest_client);
 
     let mut pr_links: Vec<Option<String>> = repos
-        .into_par_iter()
+        .into_iter()
         .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client, dryrun) {
             Some(pr_url) => Some(pr_url),
             None => None,
