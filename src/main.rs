@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 
+#[macro_use]
 extern crate clap;
 extern crate reqwest;
 #[macro_use]
@@ -17,26 +18,8 @@ mod github;
 static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
 
 fn main() {
-    let matches = App::new("release-party-br")
-        .version("0.3.1")
-        .author("Matthew Mayer <matthewkmayer@gmail.com>")
-        .about("Release party automation")
-        .arg(
-            Arg::with_name("ORG")
-                .short("o")
-                .long("org")
-                .value_name("github org")
-                .help("Github org")
-                .takes_value(true)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("DRYRUN")
-                .short("d")
-                .long("dry-run")
-                .help("dry-run - don't actually create PRs"),
-        )
-        .get_matches();
+    let yaml = load_yaml!("release-party.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
     let org_url = make_org_url(&matches);
     let token = get_github_token();

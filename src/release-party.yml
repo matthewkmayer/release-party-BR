@@ -1,0 +1,16 @@
+name: release-party-br
+version: "0.3.1"
+author: Matthew Mayer <matthewkmayer@gmail.com>
+about: Release party automation
+args:
+    - ORG:
+        short: o
+        long: org
+        value_name: github org
+        help: Github org
+        takes_value: true
+        required: true
+    - DRYRUN:
+        short: d
+        long: dry-run
+        help: dry-run - don't actually create PRs
