@@ -11,7 +11,7 @@ extern crate toml;
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
-use clap::{App, Arg};
+use clap::App;
 
 mod github;
 
@@ -25,15 +25,16 @@ fn main() {
     let token = get_github_token();
     let reqwest_client = get_reqwest_client();
 
-    print_party_links(get_pr_links(get_repos_we_care_about(&token, &org_url, &reqwest_client), &token, &reqwest_client, is_dryrun(&matches)));
+    print_party_links(get_pr_links(
+        &get_repos_we_care_about(&token, &org_url, &reqwest_client),
+        &token,
+        &reqwest_client,
+        is_dryrun(&matches),
+    ));
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
-    if matches.is_present("DRYRUN") {
-        true
-    } else {
-        false
-    }
+    matches.is_present("DRYRUN")
 }
 
 fn make_org_url(matches: &clap::ArgMatches) -> String {
@@ -44,9 +45,10 @@ fn make_org_url(matches: &clap::ArgMatches) -> String {
     format!("https://api.github.com/orgs/{}/repos", org)
 }
 
-fn get_pr_links(repos: Vec<github::GithubRepo>, token: &str, reqwest_client: &reqwest::Client, dryrun: bool) -> Vec<Option<String>> {
-    let mut pr_links: Vec<Option<String>>  = repos.into_iter()
-        .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client, dryrun) {
+fn get_pr_links(repos: &Vec<github::GithubRepo>, token: &str, reqwest_client: &reqwest::Client, dryrun: bool) -> Vec<Option<String>> {
+    let mut pr_links: Vec<Option<String>> = repos
+        .into_iter()
+        .map(|repo| match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
             Some(pr_url) => Some(pr_url),
             None => None,
         })
@@ -64,7 +66,7 @@ fn get_reqwest_client() -> reqwest::Client {
 }
 
 fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &reqwest::Client) -> Vec<github::GithubRepo> {
-    let mut repos = match github::get_repos_at(&github_org_url, token, reqwest_client) {
+    let mut repos = match github::get_repos_at(github_org_url, token, reqwest_client) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
     };
@@ -148,7 +150,7 @@ fn ignored_repos() -> Vec<String> {
 }
 
 fn get_github_token() -> String {
-    match env::var(GITHUB_TOKEN){
+    match env::var(GITHUB_TOKEN) {
         Ok(gh_token) => gh_token,
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
     }
