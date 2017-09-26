@@ -155,3 +155,22 @@ fn get_github_token() -> String {
         Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn token_from_env_happy_path() {
+        env::set_var(GITHUB_TOKEN, "a token");
+        assert_eq!("a token", get_github_token());
+        env::remove_var(GITHUB_TOKEN);
+    }
+
+    #[test]
+    #[should_panic]
+    fn token_from_env_sad_path() {
+        env::remove_var(GITHUB_TOKEN);
+        get_github_token();
+    }
+}
