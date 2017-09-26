@@ -96,13 +96,17 @@ fn close_to_running_out_of_requests(response_headers: &reqwest::header::Headers)
     let requests_to_treat_as_running_out = 10;
     let remaining_requests = match response_headers.get_raw("X-RateLimit-Remaining") {
         Some(remaining_req_from_github) => {
-            let req_left = String::from_utf8(remaining_req_from_github.one()
-                .expect("Should have a single entry for X-RateLimit-Remaining")
-                .to_vec())
-                .expect("Should be able to parse slice as string")
+            let req_left = String::from_utf8(
+                remaining_req_from_github
+                    .one()
+                    .expect("Should have a single entry for X-RateLimit-Remaining")
+                    .to_vec(),
+            ).expect("Should be able to parse slice as string")
                 .replace('"', ""); // the formatter puts quotes around the number.  EG: "55"
-            req_left.parse::<i32>().expect("Expected number in X-RateLimit-Remaining field")
-        },
+            req_left
+                .parse::<i32>()
+                .expect("Expected number in X-RateLimit-Remaining field")
+        }
         // If it's not specified, we'll say we have enough to keep going:
         None => requests_to_treat_as_running_out + 1,
     };

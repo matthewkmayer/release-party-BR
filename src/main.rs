@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 
+#[macro_use]
 extern crate clap;
 extern crate reqwest;
 #[macro_use]
@@ -8,73 +9,64 @@ extern crate serde_derive;
 extern crate toml;
 
 use std::env;
-use std::env::VarError;
 use std::io::prelude::*;
 use std::fs::File;
-use clap::{App, Arg};
+use clap::App;
 
 mod github;
 
 static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
 
 fn main() {
-    let matches = App::new("release-party-br")
-        .version("0.3.1")
-        .author("Matthew Mayer <matthewkmayer@gmail.com>")
-        .about("Release party automation")
-        .arg(
-            Arg::with_name("ORG")
-                .short("o")
-                .long("org")
-                .value_name("github org")
-                .help("Github org")
-                .takes_value(true)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("DRYRUN")
-                .short("d")
-                .long("dry-run")
-                .help("dry-run - don't actually create PRs"),
-        )
-        .get_matches();
+    let yaml = load_yaml!("release-party.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
+    let org_url = make_org_url(&matches);
+    let token = get_github_token();
+    let reqwest_client = get_reqwest_client();
+
+    print_party_links(get_pr_links(
+        &get_repos_we_care_about(&token, &org_url, &reqwest_client),
+        &token,
+        &reqwest_client,
+        is_dryrun(&matches),
+    ));
+}
+
+fn is_dryrun(matches: &clap::ArgMatches) -> bool {
+    matches.is_present("DRYRUN")
+}
+
+fn make_org_url(matches: &clap::ArgMatches) -> String {
     let org = matches
         .value_of("ORG")
         .expect("Please specify a github org");
-    let org_url = format!("https://api.github.com/orgs/{}/repos", org);
-    let dryrun = if matches.is_present("DRYRUN") {
-        true
-    } else {
-        false
-    };
 
-    let token = match get_github_token() {
-        Ok(gh_token) => gh_token,
-        Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
-    };
-    let reqwest_client = match reqwest::Client::new() {
-        Ok(new_client) => new_client,
-        Err(e) => panic!("Couldn't create new reqwest client: {}", e),
-    };
+    format!("https://api.github.com/orgs/{}/repos", org)
+}
 
-    let repos = get_repos_we_care_about(&token, &org_url, &reqwest_client);
-
+fn get_pr_links(repos: &Vec<github::GithubRepo>, token: &str, reqwest_client: &reqwest::Client, dryrun: bool) -> Vec<Option<String>> {
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
-        .map(|repo| match get_release_pr_for(&repo, &token, &reqwest_client, dryrun) {
+        .map(|repo| match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
             Some(pr_url) => Some(pr_url),
             None => None,
         })
         .collect();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
+    pr_links
+}
 
-    print_party_links(pr_links);
+fn get_reqwest_client() -> reqwest::Client {
+    match reqwest::Client::new() {
+        Ok(new_client) => new_client,
+        Err(e) => panic!("Couldn't create new reqwest client: {}", e),
+    }
 }
 
 fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &reqwest::Client) -> Vec<github::GithubRepo> {
-    let mut repos = match github::get_repos_at(&github_org_url, token, reqwest_client) {
+    let mut repos = match github::get_repos_at(github_org_url, token, reqwest_client) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
     };
@@ -157,6 +149,9 @@ fn ignored_repos() -> Vec<String> {
     }
 }
 
-fn get_github_token() -> Result<String, VarError> {
-    env::var(GITHUB_TOKEN)
+fn get_github_token() -> String {
+    match env::var(GITHUB_TOKEN) {
+        Ok(gh_token) => gh_token,
+        Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
+    }
 }
