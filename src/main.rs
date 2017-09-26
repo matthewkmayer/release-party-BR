@@ -173,4 +173,10 @@ mod tests {
         env::remove_var(GITHUB_TOKEN);
         get_github_token();
     }
+
+    #[test]
+    fn get_ignored_repos_happy_path() {
+        let ignored_repositories = vec!["calagator".to_owned(), "moe".to_owned()];
+        assert_eq!(ignored_repositories, ignored_repos());
+    }
 }
