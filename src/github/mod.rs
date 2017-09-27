@@ -297,3 +297,27 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
 
     Err("Release branch already up to date?".to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hyper::header::Headers;
+
+    #[test]
+    fn plenty_of_requests_left() {
+        header! { (XRateLimitRemaining, "X-RateLimit-Remaining") => [String] };
+        let mut plenty_left_headers = Headers::new();
+
+        plenty_left_headers.set(XRateLimitRemaining("10000".to_owned()));
+        assert_eq!(false, close_to_running_out_of_requests(&plenty_left_headers));
+    }
+
+    #[test]
+    fn no_requests_left() {
+        header! { (XRateLimitRemaining, "X-RateLimit-Remaining") => [String] };
+        let mut plenty_left_headers = Headers::new();
+
+        plenty_left_headers.set(XRateLimitRemaining("0".to_owned()));
+        assert_eq!(true, close_to_running_out_of_requests(&plenty_left_headers));
+    }
+}

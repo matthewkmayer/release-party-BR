@@ -12,6 +12,9 @@ toml = "0.4.1"
 clap = {version = "2.24", features = ["yaml"]}
 clippy = {version = "*", optional = true}
 
+[dev-dependencies]
+hyper = "0.11"
+
 [features]
 default = ["yaml"]
 yaml = []

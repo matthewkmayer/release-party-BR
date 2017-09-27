@@ -8,6 +8,10 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate toml;
 
+#[cfg(test)]
+#[macro_use]
+extern crate hyper;
+
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
