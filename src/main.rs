@@ -8,6 +8,10 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate toml;
 
+#[cfg(test)]
+#[macro_use]
+extern crate hyper;
+
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
@@ -22,7 +26,7 @@ fn main() {
     let matches = App::from_yaml(yaml).get_matches();
 
     let org_url = make_org_url(&matches);
-    let token = get_github_token();
+    let token = env::var(GITHUB_TOKEN).expect(&format!("{} should be set", GITHUB_TOKEN));
     let reqwest_client = get_reqwest_client();
 
     print_party_links(get_pr_links(
@@ -149,30 +153,9 @@ fn ignored_repos() -> Vec<String> {
     }
 }
 
-fn get_github_token() -> String {
-    match env::var(GITHUB_TOKEN) {
-        Ok(gh_token) => gh_token,
-        Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn token_from_env_happy_path() {
-        env::set_var(GITHUB_TOKEN, "a token");
-        assert_eq!("a token", get_github_token());
-        env::remove_var(GITHUB_TOKEN);
-    }
-
-    #[test]
-    #[should_panic]
-    fn token_from_env_sad_path() {
-        env::remove_var(GITHUB_TOKEN);
-        get_github_token();
-    }
 
     #[test]
     fn get_ignored_repos_happy_path() {
