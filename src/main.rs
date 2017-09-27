@@ -26,7 +26,7 @@ fn main() {
     let matches = App::from_yaml(yaml).get_matches();
 
     let org_url = make_org_url(&matches);
-    let token = get_github_token(GITHUB_TOKEN);
+    let token = env::var(GITHUB_TOKEN).expect(&format!("{} should be set", GITHUB_TOKEN));
     let reqwest_client = get_reqwest_client();
 
     print_party_links(get_pr_links(
@@ -153,29 +153,9 @@ fn ignored_repos() -> Vec<String> {
     }
 }
 
-fn get_github_token(env_var_location: &str) -> String {
-    match env::var(env_var_location) {
-        Ok(gh_token) => gh_token,
-        Err(e) => panic!(format!("Couldn't find {}: {}", GITHUB_TOKEN, e)),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn token_from_env_happy_path() {
-        env::set_var("happytoken", "a token");
-        assert_eq!("a token", get_github_token(&"happytoken".to_owned()));
-        env::remove_var("happytoken");
-    }
-
-    #[test]
-    #[should_panic]
-    fn token_from_env_sad_path() {
-        get_github_token("randomtokenlocation");
-    }
 
     #[test]
     fn get_ignored_repos_happy_path() {
