@@ -301,7 +301,7 @@ pub fn create_release_pull_request(repo: &GithubRepo, token: &str, client: &reqw
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hyper::header::Headers;
+    use hyper::header::{Headers, Link, LinkValue, RelationType};
 
     #[test]
     fn plenty_of_requests_left() {
@@ -319,5 +319,38 @@ mod tests {
 
         plenty_left_headers.set(XRateLimitRemaining("0".to_owned()));
         assert_eq!(true, close_to_running_out_of_requests(&plenty_left_headers));
+    }
+
+    #[test]
+    fn no_next_link() {
+        assert_eq!(false, response_has_a_next_link(&Headers::new()));
+    }
+
+    #[test]
+    fn has_next_link() {
+        let link_value = LinkValue::new("http://example.com/TheBook/chapter2")
+            .push_rel(RelationType::Next)
+            .set_title("next page");
+
+        let mut no_next_link_headers = Headers::new();
+        no_next_link_headers.set(
+            Link::new(vec![link_value])
+        );
+
+        assert_eq!(true, response_has_a_next_link(&no_next_link_headers));
+    }
+
+    #[test]
+    fn finds_next_link() {
+        let link_value = LinkValue::new("http://example.com/TheBook/chapter3")
+            .push_rel(RelationType::Next)
+            .set_title("next page");
+
+        let mut no_next_link_headers = Headers::new();
+        no_next_link_headers.set(
+            Link::new(vec![link_value])
+        );
+        let expected_uri = Url::parse("http://example.com/TheBook/chapter3").unwrap();
+        assert_eq!(expected_uri, response_next_link(&no_next_link_headers).unwrap());
     }
 }
