@@ -10,7 +10,7 @@ os:
 script:
   - cargo build --verbose
   - cargo test --verbose
-  - cargo build --release
+  - if [ -n "$TRAVIS_TAG" ] ; then cargo build --release; fi
 
 branches:
   only:
@@ -26,3 +26,4 @@ deploy:
   on:
     repo: matthewkmayer/release-party-BR
     tags: true
+    condition: ("$TRAVIS_OS_NAME" == "linux" || "$TRAVIS_OS_NAME" == "osx" ) && "$TRAVIS_RUST_VERSION" == "stable"
