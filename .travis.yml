@@ -1,14 +1,28 @@
 language: rust
 rust:
-  - stable
-  - beta
-  - nightly
+- stable
+- beta
+- nightly
 os:
-  - linux
-  - osx
+- linux
+- osx
+
+script:
+  - cargo build --verbose
+  - cargo test --verbose
+  - cargo build --release
+
 branches:
   only:
-    - master
-    - auto
+  - master
+  - auto
 notifications:
   email: false
+deploy:
+  provider: releases
+  api_key:
+    secure: 4MtOZ9YcdZ7XNq2A7Grx6ylSXZ4beH2l6013VEKFlJwKvsLNsmPdC3PYvPz/6ZiRu79cT8rzQ35y1/GiaiY/XW1PjsBrv58+rT3bfiWaP6sRJPWYIfX5yz1GCazHpAhvbo5PFvvs1aQCwrfvOSxAWzf1ZprRdw7eaV4OugQvp3/6kmSj/HOG9hAy2z7yP0sdvdciMFR98EN5iKP6EsrGndTBVrSz2vL2+8/m8OqYN4xVqyw2GQqogxial/acL38mSXCv8iLM5EzjLfLgIS8YtQKxNpNoVV6C1WhvNfQW4WpPa3WHoGuIAIQXPow/27A/j0xr1HSb/qyk89gP8ddVVYYmx3LU2Pn4CvSGwJWUF3ZvH5puNnExsf3+razzwQmTSWlkQtxAVp6rpQwvPY/8SrPeBMqL3359URQ8iRYCxnV2DpD7DnT3w/9n758CrBVMF/Fz4hN55eRL+vfZ30ELUzFYexaMxU3AFYxcUaHoSRGQoSqeEQ9VJZN0ZSCtN4zDRe+2nkUEWGCe600Guk+IoazmTsKtyXlciKbOADHdqZxPuOid8mj5v0tW5UawxEGhQIjJcaFbQ3WL8h1hLmuS6JQOEKjPDx2xbVlJBTBZ4lTzSN0a/7dskq44osaItz9lYL2cSR1Nfhl89FrBnMzpyb7xefYF8sUZ4muf2rq08U4=
+  file: target/release/release-party-br
+  on:
+    repo: matthewkmayer/release-party-BR
+    tags: true
