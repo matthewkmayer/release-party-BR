@@ -3,11 +3,12 @@ rust:
 - stable
 os:
 - linux
+- osx
 
 script:
   - cargo build --verbose
   - cargo test --verbose
-  - if [ -n "$TRAVIS_TAG" ] ; then cargo build --release; ls -l ./ ; ls -l ./target ; ls -l ./target/release ; fi
+  - if [ -n "$TRAVIS_TAG" ] ; then cargo build --release ; fi
 
 notifications:
   email: false
