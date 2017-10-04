@@ -12,10 +12,6 @@ script:
   - cargo test --verbose
   - if [ -n "$TRAVIS_TAG" ] ; then cargo build --release; fi
 
-branches:
-  only:
-  - master
-  - auto
 notifications:
   email: false
 deploy:
