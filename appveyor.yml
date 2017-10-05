@@ -29,3 +29,20 @@ test_script:
 branches:
   only:
     - master
+
+before_deploy:
+  - cargo build --release
+  - ls target/release
+  - mv target/release/release-party-br.exe target/release/release-party-br-windows.exe
+
+deploy:
+  description: '$(APPVEYOR_REPO_TAG_NAME) tag' # add tag here
+  provider: GitHub
+  auth_token:
+    secure: +UXYRZ5RS7SqI3kO8KIFMxyjfoy+jRtqgRlMPv0wSIxbb7nl1+7rH3YHo2xAr/OP
+  artifact: ./target/release/release-party-br-windows.exe
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    appveyor_repo_tag: true
