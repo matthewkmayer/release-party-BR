@@ -3,7 +3,7 @@ rust:
 - stable
 os:
 - linux
-
+- osx
 script:
   - cargo build --verbose
   - cargo test --verbose
