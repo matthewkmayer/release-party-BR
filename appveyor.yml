@@ -32,17 +32,18 @@ branches:
 
 before_deploy:
   - cargo build --release
-  - ls target/release
-  - mv target/release/release-party-br.exe target/release/release-party-br-windows.exe
+  - dir target/release
+  - move target/release/release-party-br.exe target/release/release-party-br-windows.exe
+  - 7z a ../%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip target/release/release-party-br-windows.exe
+  - appveyor PushArtifact ../%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip
 
 deploy:
-  description: '$(APPVEYOR_REPO_TAG_NAME) tag' # add tag here
+  description: '$(APPVEYOR_REPO_TAG_NAME) tag'
   provider: GitHub
   auth_token:
     secure: +UXYRZ5RS7SqI3kO8KIFMxyjfoy+jRtqgRlMPv0wSIxbb7nl1+7rH3YHo2xAr/OP
-  artifact: ./target/release/release-party-br-windows.exe
+  artifact: /.*\.zip/
   draft: false
   prerelease: false
   on:
-    branch: master
     appveyor_repo_tag: true
