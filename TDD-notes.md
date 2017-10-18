@@ -15,3 +15,12 @@ TDD this fix.
 ## More goal
 
 TDD a "did you mean x" response.
+
+# Lookin' good!
+
+```
+RP_GITHUBTOKEN=foo cargo run -- --org https://api.github.com/orgs/my-org-name/repos
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+     Running `target/debug/release-party-br --org 'https://api.github.com/orgs/my-org-name/repos'`
+thread 'main' panicked at 'Try this for the org value: Try this: my-org-name', src/main.rs:66:30
+```
