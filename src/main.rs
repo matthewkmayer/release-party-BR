@@ -41,10 +41,18 @@ fn is_dryrun(matches: &clap::ArgMatches) -> bool {
     matches.is_present("DRYRUN")
 }
 
+fn org_is_just_org(org: &str) -> bool {
+    true
+}
+
 fn make_org_url(matches: &clap::ArgMatches) -> String {
     let org = matches
         .value_of("ORG")
         .expect("Please specify a github org");
+
+    if !org_is_just_org(&org) {
+        panic!("Please make org just the organization name.")
+    }
 
     format!("https://api.github.com/orgs/{}/repos", org)
 }
@@ -161,5 +169,10 @@ mod tests {
     fn get_ignored_repos_happy_path() {
         let ignored_repositories = vec!["calagator".to_owned(), "moe".to_owned()];
         assert_eq!(ignored_repositories, ignored_repos());
+    }
+
+    #[test]
+    fn handle_malformed_org() {
+        assert_eq!(false, org_is_just_org("https://api.github.com/orgs/ORG-HERE/repos"));
     }
 }
