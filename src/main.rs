@@ -48,13 +48,20 @@ fn org_is_just_org(org: &str) -> bool {
     true
 }
 
+fn suggest_org_arg(org: &str) -> Result<String, String> {
+    Err("Can't make a suggestion".to_owned())
+}
+
 fn make_org_url(matches: &clap::ArgMatches) -> String {
     let org = matches
         .value_of("ORG")
         .expect("Please specify a github org");
 
     if !org_is_just_org(&org) {
-        panic!("Please make org just the organization name.")
+        match suggest_org_arg(&org) {
+            Ok(suggestion) => panic!("Try this for the org value: {}", suggestion),
+            Err(_) => panic!("Please make org just the organization name."),
+        }
     }
 
     format!("https://api.github.com/orgs/{}/repos", org)
@@ -177,5 +184,15 @@ mod tests {
     #[test]
     fn handle_malformed_org() {
         assert_eq!(false, org_is_just_org("https://api.github.com/orgs/ORG-HERE/repos"));
+    }
+
+    #[test]
+    fn handle_okay_org() {
+        assert_eq!(true, org_is_just_org("ORG-HERE"));
+    }
+
+    #[test]
+    fn suggestion_for_org() {
+        assert_eq!("try this", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
     }
 }
