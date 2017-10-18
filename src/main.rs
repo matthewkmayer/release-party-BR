@@ -49,6 +49,9 @@ fn org_is_just_org(org: &str) -> bool {
 }
 
 fn suggest_org_arg(org: &str) -> Result<String, String> {
+    if org.starts_with("https://api.github.com/orgs/") && org.ends_with("/repos") {
+        return Ok("Try this".to_owned());
+    }
     Err("Can't make a suggestion".to_owned())
 }
 
@@ -193,6 +196,6 @@ mod tests {
 
     #[test]
     fn suggestion_for_org() {
-        assert_eq!("try this", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
+        assert_eq!("Try this", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
     }
 }
