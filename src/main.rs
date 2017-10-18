@@ -41,10 +41,32 @@ fn is_dryrun(matches: &clap::ArgMatches) -> bool {
     matches.is_present("DRYRUN")
 }
 
+fn org_is_just_org(org: &str) -> bool {
+    if org.contains("https://api.github.com") {
+        return false;
+    }
+    true
+}
+
+fn suggest_org_arg(org: &str) -> Result<String, String> {
+    if org.starts_with("https://api.github.com/orgs/") && org.ends_with("/repos") {
+        let suggestion = org.replace("https://api.github.com/orgs/", "").replace("/repos", "");
+        return Ok(format!("Try this: {}", suggestion).to_owned());
+    }
+    Err("Can't make a suggestion".to_owned())
+}
+
 fn make_org_url(matches: &clap::ArgMatches) -> String {
     let org = matches
         .value_of("ORG")
         .expect("Please specify a github org");
+
+    if !org_is_just_org(&org) {
+        match suggest_org_arg(&org) {
+            Ok(suggestion) => panic!("Try this for the org value: {}", suggestion),
+            Err(_) => panic!("Please make org just the organization name."),
+        }
+    }
 
     format!("https://api.github.com/orgs/{}/repos", org)
 }
@@ -161,5 +183,27 @@ mod tests {
     fn get_ignored_repos_happy_path() {
         let ignored_repositories = vec!["calagator".to_owned(), "moe".to_owned()];
         assert_eq!(ignored_repositories, ignored_repos());
+    }
+
+    #[test]
+    fn handle_malformed_org() {
+        assert_eq!(false, org_is_just_org("https://api.github.com/orgs/ORG-HERE/repos"));
+    }
+
+    #[test]
+    fn handle_okay_org() {
+        assert_eq!(true, org_is_just_org("ORG-HERE"));
+    }
+
+    #[test]
+    fn suggestion_for_org_happy() {
+        assert_eq!("Try this: ORG-HERE", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
+    }
+
+    #[test]
+    fn suggestion_for_org_sad() {
+        assert_eq!(true, suggest_org_arg("https://api.github.com/orgs/ORG-HERE/").is_err());
+        assert_eq!(true, suggest_org_arg("http://api.github.com/orgs/ORG-HERE/").is_err());
+        assert_eq!(true, suggest_org_arg("api.github.com/orgs/ORG-HERE/repos").is_err());
     }
 }
