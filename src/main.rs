@@ -42,6 +42,9 @@ fn is_dryrun(matches: &clap::ArgMatches) -> bool {
 }
 
 fn org_is_just_org(org: &str) -> bool {
+    if org.contains("https://api.github.com") {
+        return false;
+    }
     true
 }
 
