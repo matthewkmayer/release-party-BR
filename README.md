@@ -23,39 +23,25 @@ Prebuilt binaries for Linux and OSX are available on [the releases page](https:/
 
 ## Running
 
-### Required environment variables
+#### Required environment variables
 
 `RP_GITHUBTOKEN` - a personal access token to Github
 
-### Optional: dry-run
+#### Optional: dry-run
 
 Say what PRs to create without actually creating them:
 
 `RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
 
-### Optional: repo ignore list
+#### Optional: repo ignore list
 
 The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
 for an example.
 
-### Running on OSX
+#### Running on OSX
 
 `RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-darwin-amd64 --org "ORGHERE"`
 
-### Running on Linux
+#### Running on Linux
 
 `RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-linux-amd64 --org "ORGHERE"`
-
-## Building from source
-
-Clone the repo, have Rust installed, etc...
-
-### Compile and run
-
-`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE"`
-
-### Compile then run
-
-`cargo build`
-
-`RP_GITHUBTOKEN=your_personal_token_here ./target/debug/release-party-br --org "ORGHERE"`
