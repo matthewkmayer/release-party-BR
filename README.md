@@ -23,20 +23,15 @@ Prebuilt binaries for Linux and OSX are available on [the releases page](https:/
 
 ## Running
 
-#### Required environment variables
+#### Required information
 
-`RP_GITHUBTOKEN` - a personal access token to Github
+* `RP_GITHUBTOKEN` - environment variable for a personal access token to Github
+* `--org` - GitHub organization name
 
-#### Optional: dry-run
+#### Optional behavior
 
-Say what PRs to create without actually creating them:
-
-`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
-
-#### Optional: repo ignore list
-
-The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
-for an example.
+* `dry-run` - See what PRs would be created: `RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
+* repo ignore list - The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) for an example.
 
 #### Running on OSX
 
