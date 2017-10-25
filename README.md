@@ -17,18 +17,11 @@ repos ready for a production release.
     </tr>
 </table>
 
+## Acquiring
+
+Prebuilt binaries for Linux and OSX are available on [the releases page](https://github.com/matthewkmayer/release-party-BR/releases).
 
 ## Running
-
-### Compile and run
-
-`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE"`
-
-### Compile then run
-
-`cargo build`
-
-`RP_GITHUBTOKEN=your_personal_token_here ./target/debug/release-party-br --org "ORGHERE"`
 
 ### Required environment variables
 
@@ -45,7 +38,24 @@ Say what PRs to create without actually creating them:
 The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
 for an example.
 
-### Optional: compile in release mode
+### Running on OSX
 
-Run `cargo build --release` to create a release binary.  This will run faster than a debug build.  The binary will be created at 
-`./target/release/release-party-br`.
+`RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-darwin-amd64 --org "ORGHERE"`
+
+### Running on Linux
+
+`RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-linux-amd64 --org "ORGHERE"`
+
+## Building from source
+
+Clone the repo, have Rust installed, etc...
+
+### Compile and run
+
+`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE"`
+
+### Compile then run
+
+`cargo build`
+
+`RP_GITHUBTOKEN=your_personal_token_here ./target/debug/release-party-br --org "ORGHERE"`
