@@ -17,35 +17,26 @@ repos ready for a production release.
     </tr>
 </table>
 
+## Acquiring
+
+Prebuilt binaries for Linux and OSX are available on [the releases page](https://github.com/matthewkmayer/release-party-BR/releases).
 
 ## Running
 
-### Compile and run
+#### Required information
 
-`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE"`
+* `RP_GITHUBTOKEN` - environment variable for a personal access token to Github
+* `--org` - GitHub organization name
 
-### Compile then run
+#### Optional behavior
 
-`cargo build`
+* `dry-run` - See what PRs would be created: `RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
+* repo ignore list - The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) for an example.
 
-`RP_GITHUBTOKEN=your_personal_token_here ./target/debug/release-party-br --org "ORGHERE"`
+#### Running on OSX
 
-### Required environment variables
+`RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-darwin-amd64 --org "ORGHERE"`
 
-`RP_GITHUBTOKEN` - a personal access token to Github
+#### Running on Linux
 
-### Optional: dry-run
-
-Say what PRs to create without actually creating them:
-
-`RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
-
-### Optional: repo ignore list
-
-The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) 
-for an example.
-
-### Optional: compile in release mode
-
-Run `cargo build --release` to create a release binary.  This will run faster than a debug build.  The binary will be created at 
-`./target/release/release-party-br`.
+`RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-linux-amd64 --org "ORGHERE"`
