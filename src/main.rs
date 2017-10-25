@@ -26,7 +26,13 @@ fn main() {
     let matches = App::from_yaml(yaml).get_matches();
 
     let org_url = make_org_url(&matches);
-    let token = env::var(GITHUB_TOKEN).expect(&format!("{} should be set", GITHUB_TOKEN));
+    let token = match env::var(GITHUB_TOKEN) {
+        Ok(env_var) => env_var,
+        Err(_) => {
+            print_message_and_exit(&format!("{} environment variable should be set", GITHUB_TOKEN), -1);
+            unreachable!();
+        },
+    };
     let reqwest_client = get_reqwest_client();
 
     print_party_links(get_pr_links(
@@ -51,7 +57,7 @@ fn org_is_just_org(org: &str) -> bool {
 fn suggest_org_arg(org: &str) -> Result<String, String> {
     if org.starts_with("https://api.github.com/orgs/") && org.ends_with("/repos") {
         let suggestion = org.replace("https://api.github.com/orgs/", "").replace("/repos", "");
-        return Ok(format!("Try this: {}", suggestion).to_owned());
+        return Ok(format!("{}", suggestion).to_owned());
     }
     Err("Can't make a suggestion".to_owned())
 }
@@ -63,8 +69,8 @@ fn make_org_url(matches: &clap::ArgMatches) -> String {
 
     if !org_is_just_org(&org) {
         match suggest_org_arg(&org) {
-            Ok(suggestion) => panic!("Try this for the org value: {}", suggestion),
-            Err(_) => panic!("Please make org just the organization name."),
+            Ok(suggestion) => print_message_and_exit(&format!("Try this for the org value: {}", suggestion), -1),
+            Err(_) => print_message_and_exit(&format!("Please make org just the organization name."), -1),
         }
     }
 
@@ -175,6 +181,11 @@ fn ignored_repos() -> Vec<String> {
     }
 }
 
+fn print_message_and_exit(message: &str, exit_code: i32) {
+    println!("{}", message);
+    ::std::process::exit(exit_code);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -197,7 +208,7 @@ mod tests {
 
     #[test]
     fn suggestion_for_org_happy() {
-        assert_eq!("Try this: ORG-HERE", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
+        assert_eq!("ORG-HERE", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
     }
 
     #[test]
