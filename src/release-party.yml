@@ -1,5 +1,5 @@
 name: release-party-br
-version: "0.3.1"
+version: "0.3.2"
 author: Matthew Mayer <matthewkmayer@gmail.com>
 about: Release party automation
 args:
