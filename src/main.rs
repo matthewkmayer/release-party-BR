@@ -20,12 +20,11 @@ use std::env;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
-use std::{thread, time};
 use std::default::Default;
 use clap::App;
 use rusoto_core::{default_tls_client, DefaultCredentialsProvider, Region};
 use rusoto_polly::{Polly, PollyClient, SynthesizeSpeechInput};
-use rodio::Source;
+use rodio::Sink;
 
 mod github;
 
@@ -72,7 +71,9 @@ fn speak_polly_speak(to_speak: &str) {
 
     let endpoint = rodio::get_default_endpoint().expect("default endpoint?");
     let source = rodio::Decoder::new(BufReader::new(file)).expect("decoder fail");
-    rodio::play_raw(&endpoint, source.convert_samples());
+    let sink = Sink::new(&endpoint);
+    sink.append(source);
+    sink.sleep_until_end();
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
@@ -177,8 +178,6 @@ fn print_party_links(pr_links: Vec<Option<String>>) {
     }
     speak_polly_speak(&announcement);
     println!("{}", announcement);
-    // TODO: wait for rodio to finish up before exiting.  This is a complete hack:
-    thread::sleep(time::Duration::from_secs(10));
 }
 
 #[derive(Deserialize, Debug)]
