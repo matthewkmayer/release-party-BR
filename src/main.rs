@@ -169,21 +169,19 @@ fn print_party_links(pr_links: Vec<Option<String>>) {
     let mut vocal_announcement = String::new();
     if !pr_links.is_empty() {
         print_announcement.push_str("\nIt's a release party!  PRs to review and approve:");
-        vocal_announcement.push_str("\nIt's a release party!  PRs to review and approve:");
+        vocal_announcement.push_str("\nIt's a release party!  PRs to review and approve: ");
         for link in pr_links {
             match link {
                 Some(pr_link) => {
                     print_announcement.push_str(&format!("\n{}", pr_link));
-                    // this should handle both foo and foo/42:
-                    // if the last one is a number, ignore it and get second to last
-                    // otherwise grab the end of the vector
                     let link_sections = Vec::from_iter(pr_link.split('/')).to_vec();
                     if link_sections.last().unwrap().parse::<i32>().is_ok() {
-                        vocal_announcement.push_str(&link_sections[link_sections.len()-2]);
+                        vocal_announcement.push_str(&link_sections[link_sections.len()-3]);
                     }
                     else {
                         vocal_announcement.push_str(&link_sections.last().unwrap());
                     }
+                    vocal_announcement.push_str(" ");
                 }
                 None => print_announcement.push_str(&"Party link is None: this shouldn't happen."),
             }
