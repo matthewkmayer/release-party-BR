@@ -12,10 +12,16 @@ extern crate toml;
 #[macro_use]
 extern crate hyper;
 
+extern crate rusoto_core;
+extern crate rusoto_polly;
+
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
+use std::default::Default;
 use clap::App;
+use rusoto_core::{default_tls_client, DefaultCredentialsProvider, Region};
+use rusoto_polly::{Polly, PollyClient, SynthesizeSpeechInput};
 
 mod github;
 
@@ -33,6 +39,7 @@ fn main() {
             unreachable!();
         },
     };
+    speak_polly_speak("Check check");
     let reqwest_client = get_reqwest_client();
 
     print_party_links(get_pr_links(
@@ -41,6 +48,26 @@ fn main() {
         &reqwest_client,
         is_dryrun(&matches),
     ));
+}
+
+fn speak_polly_speak(to_speak: &str) {
+    let credentials = DefaultCredentialsProvider::new().unwrap();
+    let client = PollyClient::new(default_tls_client().unwrap(), credentials, Region::UsEast1);
+    let request = SynthesizeSpeechInput {
+        output_format: "ogg_vorbis".to_owned(),
+        text: to_speak.to_owned(),
+        voice_id: "Matthew".to_owned(),
+        ..Default::default()
+    };
+    let response = client.synthesize_speech(&request).expect("Make sounds");
+
+    let mut buffer = File::create("foo.ogg").expect("couldn't make file");
+
+    // Writes some prefix of the byte string, not necessarily all of it.
+    buffer.write(&response.audio_stream.expect("should have some file stuff")).expect("should write to disk");
+    buffer.flush().expect("flush no worky");
+
+    panic!("abort abort");
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
