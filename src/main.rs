@@ -14,14 +14,18 @@ extern crate hyper;
 
 extern crate rusoto_core;
 extern crate rusoto_polly;
+extern crate rodio;
 
 use std::env;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::fs::File;
+use std::{thread, time};
 use std::default::Default;
 use clap::App;
 use rusoto_core::{default_tls_client, DefaultCredentialsProvider, Region};
 use rusoto_polly::{Polly, PollyClient, SynthesizeSpeechInput};
+use rodio::Source;
 
 mod github;
 
@@ -39,7 +43,6 @@ fn main() {
             unreachable!();
         },
     };
-    speak_polly_speak("Check check");
     let reqwest_client = get_reqwest_client();
 
     print_party_links(get_pr_links(
@@ -62,12 +65,14 @@ fn speak_polly_speak(to_speak: &str) {
     let response = client.synthesize_speech(&request).expect("Make sounds");
 
     let mut buffer = File::create("foo.ogg").expect("couldn't make file");
+    buffer.write(&response.audio_stream.expect("no stream found")).expect("couldn't write voice to file");
+    buffer.flush().expect("couldn't flush buffer");
 
-    // Writes some prefix of the byte string, not necessarily all of it.
-    buffer.write(&response.audio_stream.expect("should have some file stuff")).expect("should write to disk");
-    buffer.flush().expect("flush no worky");
+    let file = File::open("foo.ogg").unwrap();
 
-    panic!("abort abort");
+    let endpoint = rodio::get_default_endpoint().expect("default endpoint?");
+    let source = rodio::Decoder::new(BufReader::new(file)).expect("decoder fail");
+    rodio::play_raw(&endpoint, source.convert_samples());
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
@@ -156,18 +161,24 @@ fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::
     }
 }
 
+// TODO: what we print and what we say should be different
 fn print_party_links(pr_links: Vec<Option<String>>) {
+    let mut announcement = String::new();
     if !pr_links.is_empty() {
-        println!("\nIt's a release party!  PRs to review and approve:");
+        announcement.push_str("\nIt's a release party!  PRs to review and approve:");
         for link in pr_links {
             match link {
-                Some(pr_link) => println!("{}", pr_link),
-                None => println!("Party link is None: this shouldn't happen."),
+                Some(pr_link) => announcement.push_str(&format!("{}", pr_link)),
+                None => announcement.push_str(&format!("Party link is None: this shouldn't happen.")),
             }
         }
     } else {
-        println!("\nNo party today, all releases are done.");
+        announcement.push_str("\nNo party today, all releases are done.");
     }
+    speak_polly_speak(&announcement);
+    println!("{}", announcement);
+    // TODO: wait for rodio to finish up before exiting.  This is a complete hack:
+    thread::sleep(time::Duration::from_secs(10));
 }
 
 #[derive(Deserialize, Debug)]

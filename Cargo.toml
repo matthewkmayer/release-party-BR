@@ -13,6 +13,7 @@ clap = {version = "2.27", features = ["yaml"]}
 clippy = {version = "*", optional = true}
 rusoto_core = "0.28"
 rusoto_polly = "0.28"
+rodio = "0.5"
 
 [dev-dependencies]
 hyper = "0.11"
