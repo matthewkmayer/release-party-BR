@@ -19,16 +19,16 @@ repos ready for a production release.
 
 ## Acquiring
 
-Prebuilt binaries for Linux and OSX are available on [the releases page](https://github.com/matthewkmayer/release-party-BR/releases).
+Prebuilt binaries for Linux and OSX are available on [the releases page](https://github.com/matthewkmayer/release-party-BR/releases). If there's a `Permission denied` error when running the prebuilt binary, try running `chmod +x release-party-br-darwin-amd64` to make the file executable.
 
 ## Running
 
-#### Required information
+#### Required
 
 * `RP_GITHUBTOKEN` - environment variable for a personal access token to Github
 * `--org` - GitHub organization name
 
-#### Optional behavior
+#### Optional
 
 * `dry-run` - See what PRs would be created: `RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
 * repo ignore list - The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) for an example.
