@@ -176,6 +176,18 @@ pub fn get_repos_at(
         Err(e) => return Err(format!("Couldn't parse uri {:?} : {:?}", repos_url, e)),
     };
     let mut response = get_repos_at_url(url, token, client).expect("request failed");
+
+    if !response.status().is_success() {
+        let mut buffer = String::new();
+        match response.read_to_string(&mut buffer) {
+            Ok(_) => (),
+            Err(e) => println!(
+                "error reading response from github when getting repo list: {}",
+                e
+            ),
+        }
+        panic!("Error: Github responded with {:?}", buffer);
+    }
     delay_if_running_out_of_requests(response.headers());
     let mut buffer = String::new();
     match response.read_to_string(&mut buffer) {
