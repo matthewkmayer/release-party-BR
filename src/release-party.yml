@@ -1,7 +1,10 @@
 name: release-party-br
 version: "0.3.2"
 author: Matthew Mayer <matthewkmayer@gmail.com>
-about: Release party automation
+about: |
+    Release party automation
+
+    Use the RP_GITHUBTOKEN environment variable to provide a GitHub token for authentication
 args:
     - ORG:
         short: o
