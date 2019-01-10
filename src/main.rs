@@ -12,10 +12,10 @@ extern crate toml;
 #[macro_use]
 extern crate hyper;
 
-use std::env;
-use std::io::prelude::*;
-use std::fs::File;
 use clap::App;
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
 
 mod github;
 
@@ -29,9 +29,12 @@ fn main() {
     let token = match env::var(GITHUB_TOKEN) {
         Ok(env_var) => env_var,
         Err(_) => {
-            print_message_and_exit(&format!("{} environment variable should be set", GITHUB_TOKEN), -1);
+            print_message_and_exit(
+                &format!("{} environment variable should be set", GITHUB_TOKEN),
+                -1,
+            );
             unreachable!();
-        },
+        }
     };
     let reqwest_client = get_reqwest_client();
 
@@ -56,7 +59,9 @@ fn org_is_just_org(org: &str) -> bool {
 
 fn suggest_org_arg(org: &str) -> Result<String, String> {
     if org.starts_with("https://api.github.com/orgs/") && org.ends_with("/repos") {
-        let suggestion = org.replace("https://api.github.com/orgs/", "").replace("/repos", "");
+        let suggestion = org
+            .replace("https://api.github.com/orgs/", "")
+            .replace("/repos", "");
         return Ok(format!("{}", suggestion).to_owned());
     }
     Err("Can't make a suggestion".to_owned())
@@ -69,21 +74,32 @@ fn make_org_url(matches: &clap::ArgMatches) -> String {
 
     if !org_is_just_org(&org) {
         match suggest_org_arg(&org) {
-            Ok(suggestion) => print_message_and_exit(&format!("Try this for the org value: {}", suggestion), -1),
-            Err(_) => print_message_and_exit(&format!("Please make org just the organization name."), -1),
+            Ok(suggestion) => {
+                print_message_and_exit(&format!("Try this for the org value: {}", suggestion), -1)
+            }
+            Err(_) => {
+                print_message_and_exit(&format!("Please make org just the organization name."), -1)
+            }
         }
     }
 
     format!("https://api.github.com/orgs/{}/repos", org)
 }
 
-fn get_pr_links(repos: &Vec<github::GithubRepo>, token: &str, reqwest_client: &reqwest::Client, dryrun: bool) -> Vec<Option<String>> {
+fn get_pr_links(
+    repos: &Vec<github::GithubRepo>,
+    token: &str,
+    reqwest_client: &reqwest::Client,
+    dryrun: bool,
+) -> Vec<Option<String>> {
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
-        .map(|repo| match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
-            Some(pr_url) => Some(pr_url),
-            None => None,
-        })
+        .map(
+            |repo| match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
+                Some(pr_url) => Some(pr_url),
+                None => None,
+            },
+        )
         .collect();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
@@ -97,7 +113,11 @@ fn get_reqwest_client() -> reqwest::Client {
     }
 }
 
-fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &reqwest::Client) -> Vec<github::GithubRepo> {
+fn get_repos_we_care_about(
+    token: &str,
+    github_org_url: &str,
+    reqwest_client: &reqwest::Client,
+) -> Vec<github::GithubRepo> {
     let mut repos = match github::get_repos_at(github_org_url, token, reqwest_client) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
@@ -110,22 +130,29 @@ fn get_repos_we_care_about(token: &str, github_org_url: &str, reqwest_client: &r
     repos
 }
 
-fn get_release_pr_for(repo: &github::GithubRepo, token: &str, client: &reqwest::Client, dryrun: bool) -> Option<String> {
+fn get_release_pr_for(
+    repo: &github::GithubRepo,
+    token: &str,
+    client: &reqwest::Client,
+    dryrun: bool,
+) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
     match github::existing_release_pr_location(repo, token, client) {
         Some(url) => Some(url),
-        None => if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
-            if dryrun {
-                Some(format!("Dry run: {} would get a release PR.", repo.url))
-            } else {
-                match github::create_release_pull_request(repo, token, client) {
-                    Ok(pr_url) => Some(pr_url),
-                    Err(_) => None,
+        None => {
+            if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
+                if dryrun {
+                    Some(format!("Dry run: {} would get a release PR.", repo.url))
+                } else {
+                    match github::create_release_pull_request(repo, token, client) {
+                        Ok(pr_url) => Some(pr_url),
+                        Err(_) => None,
+                    }
                 }
+            } else {
+                None
             }
-        } else {
-            None
-        },
+        }
     }
 }
 
@@ -152,7 +179,10 @@ fn ignored_repos() -> Vec<String> {
     let mut f = match File::open("ignoredrepos.toml") {
         Ok(file) => file,
         Err(e) => {
-            println!("Couldn't load ignoredrepos.toml, not ignoring any repos. Reason: {}", e);
+            println!(
+                "Couldn't load ignoredrepos.toml, not ignoring any repos. Reason: {}",
+                e
+            );
             return Vec::new();
         }
     };
@@ -160,7 +190,10 @@ fn ignored_repos() -> Vec<String> {
     match f.read_to_string(&mut buffer) {
         Ok(_) => (),
         Err(e) => {
-            println!("Couldn't read from ignoredrepos.toml, not ignoring any repos. Reason: {}", e);
+            println!(
+                "Couldn't read from ignoredrepos.toml, not ignoring any repos. Reason: {}",
+                e
+            );
             return Vec::new();
         }
     }
@@ -198,7 +231,10 @@ mod tests {
 
     #[test]
     fn handle_malformed_org() {
-        assert_eq!(false, org_is_just_org("https://api.github.com/orgs/ORG-HERE/repos"));
+        assert_eq!(
+            false,
+            org_is_just_org("https://api.github.com/orgs/ORG-HERE/repos")
+        );
     }
 
     #[test]
@@ -208,13 +244,25 @@ mod tests {
 
     #[test]
     fn suggestion_for_org_happy() {
-        assert_eq!("ORG-HERE", suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap());
+        assert_eq!(
+            "ORG-HERE",
+            suggest_org_arg("https://api.github.com/orgs/ORG-HERE/repos").unwrap()
+        );
     }
 
     #[test]
     fn suggestion_for_org_sad() {
-        assert_eq!(true, suggest_org_arg("https://api.github.com/orgs/ORG-HERE/").is_err());
-        assert_eq!(true, suggest_org_arg("http://api.github.com/orgs/ORG-HERE/").is_err());
-        assert_eq!(true, suggest_org_arg("api.github.com/orgs/ORG-HERE/repos").is_err());
+        assert_eq!(
+            true,
+            suggest_org_arg("https://api.github.com/orgs/ORG-HERE/").is_err()
+        );
+        assert_eq!(
+            true,
+            suggest_org_arg("http://api.github.com/orgs/ORG-HERE/").is_err()
+        );
+        assert_eq!(
+            true,
+            suggest_org_arg("api.github.com/orgs/ORG-HERE/repos").is_err()
+        );
     }
 }
