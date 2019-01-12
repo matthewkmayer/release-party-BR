@@ -102,8 +102,8 @@ fn get_pr_links(
                 None => None,
             };
             // update the PR body
-            // will look like https://github.com/matthewkmayer/release-party-BR/pull/39
-            // split by '/' and grab last chunk?
+            // pr_url will look like https://github.com/matthewkmayer/release-party-BR/pull/39
+            // split by '/' and grab last chunk.
             match i {
                 Some(ref pr_url) => {
                     let pr_split = pr_url.split('/').collect::<Vec<&str>>();

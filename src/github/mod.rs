@@ -337,17 +337,22 @@ pub fn get_commits_from_pr(
 
     for c in prs.into_iter() {
         if c.actual_commit.message.contains("Merge pull request #") {
-            // remove the bits we don't need: go from "Merge pull request #1890 from..." to "#1890" 
+            // remove the bits we don't need: go from "Merge pull request #1890 from..." to "#1890"
             let pr_number = c.actual_commit.message.split(' ').collect::<Vec<&str>>()[3];
             new_body.push_str(&format!("\n* {}", pr_number));
-        }        
+        }
     }
-    
+
     new_body
 }
 
-
-pub fn set_pr_body(repo: &GithubRepo, token: &str, pr_number: &str, body: &str, client: &reqwest::Client) {
+pub fn set_pr_body(
+    repo: &GithubRepo,
+    token: &str,
+    pr_number: &str,
+    body: &str,
+    client: &reqwest::Client,
+) {
     let mut pr_body = HashMap::new();
     pr_body.insert("body", body);
 
