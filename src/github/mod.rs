@@ -289,6 +289,48 @@ pub fn existing_release_pr_location(
     None
 }
 
+// pub fn get_commits_from_pr(
+//     repo: &GithubRepo,
+//     token: &str,
+//     pr_number: &str,
+//     client: &reqwest::Client,
+// ) -> Vec<String> {
+//     // GET /repos/:owner/:repo/pulls/:number/commits
+//     let pr_commits_url = format!("{}/pulls/{}/commits", repo.url, pr_number);
+
+//     vec!["".to_string()]
+// }
+
+
+pub fn set_pr_body(repo: &GithubRepo, token: &str, pr_number: &str, body: &str, client: &reqwest::Client) {
+    let mut pr_body = HashMap::new();
+    pr_body.insert("body", body);
+
+    let repo_pr_url = format!("{}/pulls/{}", repo.url, pr_number);
+    let res = match client
+        .patch(&repo_pr_url)
+        .expect("Couldn't make a request builder for creating PR url")
+        .header(UserAgent::new(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .json(&pr_body)
+        .expect("Couldn't make the JSON payload for creating a PR")
+        .send()
+    {
+        Ok(response) => response,
+        Err(e) => panic!(format!("Error in request to github creating new PR: {}", e)),
+    };
+    println!("\n\nSent it!\n\n");
+    delay_if_running_out_of_requests(res.headers());
+}
+
+pub fn update_pr_body(repo: &GithubRepo, token: &str, pr_number: &str, client: &reqwest::Client) {
+    println!("I am updating a PR body! repo is {:?} and pr number is {}", repo, pr_number);
+    // let new_body = get_commits_from_pr(repo, token, pr_number, client);
+    let new_body = "automated release partay.\n\nPRs in this release:\n* #1234\n* #1235";
+
+    set_pr_body(repo, token, pr_number, new_body, client);
+}
+
 // Try to create the release PR and return the URL of it:
 pub fn create_release_pull_request(
     repo: &GithubRepo,

@@ -38,12 +38,14 @@ fn main() {
     };
     let reqwest_client = get_reqwest_client();
 
-    print_party_links(get_pr_links(
+    let links = get_pr_links(
         &get_repos_we_care_about(&token, &org_url, &reqwest_client),
         &token,
         &reqwest_client,
         is_dryrun(&matches),
-    ));
+    );
+
+    print_party_links(links);
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
@@ -94,12 +96,24 @@ fn get_pr_links(
 ) -> Vec<Option<String>> {
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
-        .map(
-            |repo| match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
+        .map(|repo| {
+            let i = match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
                 Some(pr_url) => Some(pr_url),
                 None => None,
-            },
-        )
+            };
+            // update the PR body
+            // will look like https://github.com/matthewkmayer/release-party-BR/pull/39
+            // split by '/' and grab last chunk?
+            match i {
+                Some(ref pr_url) => {
+                    let pr_split = pr_url.split('/').collect::<Vec<&str>>();
+                    let pr_num = pr_split.last().expect("PR link malformed?");
+                    github::update_pr_body(repo, token, pr_num, reqwest_client);
+                }
+                None => (),
+            }
+            i
+        })
         .collect();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
