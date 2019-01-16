@@ -35,7 +35,18 @@ pub struct GithubPullRequest {
 #[derive(Deserialize, Debug)]
 pub struct Commit {
     pub sha: String,
-    pub label: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ActualCommitInPR {
+    pub message: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CommitInPR {
+    pub sha: String,
+    #[serde(rename = "commit")]
+    pub actual_commit: ActualCommitInPR,
 }
 
 pub fn is_release_up_to_date_with_master(
@@ -287,6 +298,83 @@ pub fn existing_release_pr_location(
     }
 
     None
+}
+
+pub fn get_commits_from_pr(
+    repo: &GithubRepo,
+    token: &str,
+    pr_number: &str,
+    client: &reqwest::Client,
+) -> String {
+    let pr_commits_url = format!("{}/pulls/{}/commits", repo.url, pr_number);
+
+    let mut res = match client
+        .get(&pr_commits_url)
+        .expect("Couldn't make a request builder for commits page url")
+        .header(UserAgent::new(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .send()
+    {
+        Ok(response) => response,
+        Err(e) => {
+            panic!("Error in request to github for compare page: {}", e);
+        }
+    };
+    delay_if_running_out_of_requests(res.headers());
+
+    let mut buffer = String::new();
+    match res.read_to_string(&mut buffer) {
+        Ok(_) => (),
+        Err(e) => println!("error checking commit diff for {}: {}", pr_commits_url, e),
+    }
+
+    let prs: Vec<CommitInPR> = match serde_json::from_str(&buffer) {
+        Ok(v) => v,
+        Err(e) => panic!(format!("Couldn't deserialize repos from github: {}", e)),
+    };
+
+    let mut new_body = "automated release partay!\n\nPRs in this release:".to_string();
+
+    for c in prs.into_iter() {
+        if c.actual_commit.message.contains("Merge pull request #") {
+            // remove the bits we don't need: go from "Merge pull request #1890 from..." to "#1890"
+            let pr_number = c.actual_commit.message.split(' ').collect::<Vec<&str>>()[3];
+            new_body.push_str(&format!("\n* {}", pr_number));
+        }
+    }
+
+    new_body
+}
+
+pub fn set_pr_body(
+    repo: &GithubRepo,
+    token: &str,
+    pr_number: &str,
+    body: &str,
+    client: &reqwest::Client,
+) {
+    let mut pr_body = HashMap::new();
+    pr_body.insert("body", body);
+
+    let repo_pr_url = format!("{}/pulls/{}", repo.url, pr_number);
+    let res = match client
+        .patch(&repo_pr_url)
+        .expect("Couldn't make a request builder for creating PR url")
+        .header(UserAgent::new(USERAGENT.to_string()))
+        .header(Authorization(format!("token {}", token)))
+        .json(&pr_body)
+        .expect("Couldn't make the JSON payload for creating a PR")
+        .send()
+    {
+        Ok(response) => response,
+        Err(e) => panic!(format!("Error in request to github creating new PR: {}", e)),
+    };
+    delay_if_running_out_of_requests(res.headers());
+}
+
+pub fn update_pr_body(repo: &GithubRepo, token: &str, pr_number: &str, client: &reqwest::Client) {
+    let new_body = get_commits_from_pr(repo, token, pr_number, client);
+    set_pr_body(repo, token, pr_number, &new_body, client);
 }
 
 // Try to create the release PR and return the URL of it:
