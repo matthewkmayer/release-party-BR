@@ -1,14 +1,13 @@
 extern crate reqwest;
 extern crate serde_json;
 
-use self::reqwest::header::{Authorization, Link, UserAgent};
+use self::reqwest::header::LINK;
 use self::reqwest::{Error, Response, Url};
+use reqwest::hyper_011::{header::Link, header::RelationType, Headers};
 
 use std::collections::HashMap;
 use std::io::Read;
 use std::{thread, time};
-
-static USERAGENT: &'static str = "release-party-br";
 
 #[derive(Deserialize, Debug)]
 pub struct GithubRepo {
@@ -49,11 +48,7 @@ pub struct CommitInPR {
     pub actual_commit: ActualCommitInPR,
 }
 
-pub fn is_release_up_to_date_with_master(
-    repo_url: &str,
-    token: &str,
-    client: &reqwest::Client,
-) -> bool {
+pub fn is_release_up_to_date_with_master(repo_url: &str, client: &reqwest::Client) -> bool {
     let repo_pr_url = format!("{}/{}/{}...{}", repo_url, "compare", "master", "release");
     let url = match Url::parse(&repo_pr_url) {
         Ok(new_url) => new_url,
@@ -62,13 +57,7 @@ pub fn is_release_up_to_date_with_master(
             return true;
         }
     };
-    let mut res = match client
-        .get(url.clone())
-        .expect("Couldn't make a request builder for comparison page url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-    {
+    let mut res = match client.get(url.clone()).send() {
         Ok(response) => response,
         Err(e) => {
             println!("Error in request to github for compare page: {}", e);
@@ -95,10 +84,10 @@ pub fn is_release_up_to_date_with_master(
     true
 }
 
-fn delay_if_running_out_of_requests(response_headers: &reqwest::header::Headers) {
+fn delay_if_running_out_of_requests(response_headers: &reqwest::header::HeaderMap) {
     if close_to_running_out_of_requests(response_headers) {
         println!("Running low on requests, throttling back...");
-        thread::sleep(time::Duration::from_millis(1000));
+        thread::sleep(time::Duration::from_millis(2000));
     }
 }
 
@@ -107,21 +96,21 @@ fn delay_if_running_out_of_requests(response_headers: &reqwest::header::Headers)
 // EG: 55 requests left out of a limit of 60 is fine.
 // 10 requests left out of 60 is time to throttle back.
 // TODO: dump the `expects` and handle things more gracefully.
-fn close_to_running_out_of_requests(response_headers: &reqwest::header::Headers) -> bool {
+fn close_to_running_out_of_requests(response_headers: &reqwest::header::HeaderMap) -> bool {
     let requests_to_treat_as_running_out = 10;
-    let remaining_requests = match response_headers.get_raw("X-RateLimit-Remaining") {
+    let remaining_requests = match response_headers.get("X-RateLimit-Remaining") {
         Some(remaining_req_from_github) => {
-            let req_left = String::from_utf8(
-                remaining_req_from_github
-                    .one()
-                    .expect("Should have a single entry for X-RateLimit-Remaining")
-                    .to_vec(),
-            )
-            .expect("Should be able to parse slice as string")
-            .replace('"', ""); // the formatter puts quotes around the number.  EG: "55"
-            req_left
+            let req_left = remaining_req_from_github
+                .to_str()
+                .expect("Rate limit should be able to be a string")
+                .replace('"', ""); // the formatter puts quotes around the number.  EG: "55"
+            let int_req_left = req_left
                 .parse::<i32>()
-                .expect("Expected number in X-RateLimit-Remaining field")
+                .expect("Expected number in X-RateLimit-Remaining field");
+            if int_req_left == 0 {
+                panic!("We're out of requests, sad! Exiting poorly.");
+            }
+            int_req_left
         }
         // If it's not specified, we'll say we have enough to keep going:
         None => requests_to_treat_as_running_out + 1,
@@ -129,64 +118,52 @@ fn close_to_running_out_of_requests(response_headers: &reqwest::header::Headers)
     remaining_requests < requests_to_treat_as_running_out
 }
 
-fn response_has_a_next_link(response_headers: &reqwest::header::Headers) -> bool {
-    if response_headers.get::<Link>().is_none() {
+fn response_has_a_next_link(response_headers: &reqwest::header::HeaderMap) -> bool {
+    if response_headers.get(LINK).is_none() {
         return false;
     }
-    for link in response_headers
-        .get::<Link>()
-        .expect("links in has next")
-        .values()
-    {
-        let next_link = link.rel();
-        match next_link {
-            Some(v) => {
-                let link_something = v.first().expect("should have value in links headers");
-                if link_something == &reqwest::header::RelationType::Next {
+
+    let headers = Headers::from(response_headers.clone());
+    if let Some(link) = headers.get::<Link>() {
+        return link.values().iter().any(|ref l| {
+            if let Some(r) = l.rel() {
+                if r.iter().any(|foo| foo == &RelationType::Next) {
                     return true;
                 }
             }
-            None => return false,
-        }
+            false
+        });
     }
     false
 }
 
 // Expects caller to check to ensure the `next` link is present
-fn response_next_link(response_headers: &reqwest::header::Headers) -> Result<Url, String> {
-    for link in response_headers
-        .get::<Link>()
-        .expect("links in response next")
-        .values()
-    {
-        let next_link = link.rel();
-        match next_link {
-            Some(v) => {
-                let link_something = v.first().expect("should have value in links headers");
-                if link_something == &reqwest::header::RelationType::Next {
-                    let uri = Url::parse(link.link())
-                        .expect("Should have been able to parse the nextlink");
-                    return Ok(uri);
+fn response_next_link(response_headers: &reqwest::header::HeaderMap) -> Result<Url, String> {
+    let headers = Headers::from(response_headers.clone());
+    if let Some(link) = headers.get::<Link>() {
+        for l in link.values() {
+            if let Some(r) = l.rel() {
+                // r will be a collection of relations
+                for rel in r {
+                    if rel == &RelationType::Next {
+                        let uri = Url::parse(l.link()).expect("Should have a nextlink");
+                        return Ok(uri);
+                    }
                 }
             }
-            None => (),
         }
     }
     Err("Couldn't find a next link: does it exist?".to_string())
 }
 
-pub fn get_repos_at(
-    repos_url: &str,
-    token: &str,
-    client: &reqwest::Client,
-) -> Result<Vec<GithubRepo>, String> {
+pub fn get_repos_at(repos_url: &str, client: &reqwest::Client) -> Result<Vec<GithubRepo>, String> {
     // We need to pass in the URL from the link headers to github API docs.
     // We'll construct it this first time.
     let url = match Url::parse_with_params(repos_url, &[("per_page", "50")]) {
         Ok(new_url) => new_url,
         Err(e) => return Err(format!("Couldn't parse uri {:?} : {:?}", repos_url, e)),
     };
-    let mut response = get_repos_at_url(url, token, client).expect("request failed");
+    let mut response = get_repos_at_url(url, client).expect("request failed");
 
     if !response.status().is_success() {
         let mut buffer = String::new();
@@ -213,7 +190,7 @@ pub fn get_repos_at(
     if response_has_a_next_link(response.headers()) {
         loop {
             let paging_url = response_next_link(response.headers()).expect("a thing");
-            response = get_repos_at_url(paging_url, token, client).expect("request failed");
+            response = get_repos_at_url(paging_url, client).expect("request failed");
             delay_if_running_out_of_requests(response.headers());
             buffer = String::new();
             match response.read_to_string(&mut buffer) {
@@ -233,17 +210,8 @@ pub fn get_repos_at(
     Ok(repos)
 }
 
-fn get_repos_at_url(
-    url: reqwest::Url,
-    token: &str,
-    client: &reqwest::Client,
-) -> Result<Response, Error> {
-    client
-        .get(url)
-        .expect("Couldn't make a request builder for repos page url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
+fn get_repos_at_url(url: reqwest::Url, client: &reqwest::Client) -> Result<Response, Error> {
+    client.get(url).send()
 }
 
 fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
@@ -254,11 +222,7 @@ fn repo_list_from_string(json_str: &str) -> Result<Vec<GithubRepo>, String> {
     };
 }
 
-pub fn existing_release_pr_location(
-    repo: &GithubRepo,
-    token: &str,
-    client: &reqwest::Client,
-) -> Option<String> {
+pub fn existing_release_pr_location(repo: &GithubRepo, client: &reqwest::Client) -> Option<String> {
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
     let url = match Url::parse_with_params(&repo_pr_url, &[("head", "master"), ("base", "release")])
     {
@@ -268,13 +232,7 @@ pub fn existing_release_pr_location(
             return None;
         }
     };
-    let mut res = match client
-        .get(url)
-        .expect("Couldn't make a request builder for existing PRs page url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-    {
+    let mut res = match client.get(url).send() {
         Ok(response) => response,
         Err(e) => {
             println!("Error in request to github for existing PR location: {}", e);
@@ -300,21 +258,10 @@ pub fn existing_release_pr_location(
     None
 }
 
-pub fn get_commits_from_pr(
-    repo: &GithubRepo,
-    token: &str,
-    pr_number: &str,
-    client: &reqwest::Client,
-) -> String {
+pub fn get_commits_from_pr(repo: &GithubRepo, pr_number: &str, client: &reqwest::Client) -> String {
     let pr_commits_url = format!("{}/pulls/{}/commits", repo.url, pr_number);
 
-    let mut res = match client
-        .get(&pr_commits_url)
-        .expect("Couldn't make a request builder for commits page url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .send()
-    {
+    let mut res = match client.get(&pr_commits_url).send() {
         Ok(response) => response,
         Err(e) => {
             panic!("Error in request to github for compare page: {}", e);
@@ -346,41 +293,26 @@ pub fn get_commits_from_pr(
     new_body
 }
 
-pub fn set_pr_body(
-    repo: &GithubRepo,
-    token: &str,
-    pr_number: &str,
-    body: &str,
-    client: &reqwest::Client,
-) {
+pub fn set_pr_body(repo: &GithubRepo, pr_number: &str, body: &str, client: &reqwest::Client) {
     let mut pr_body = HashMap::new();
     pr_body.insert("body", body);
 
     let repo_pr_url = format!("{}/pulls/{}", repo.url, pr_number);
-    let res = match client
-        .patch(&repo_pr_url)
-        .expect("Couldn't make a request builder for creating PR url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .json(&pr_body)
-        .expect("Couldn't make the JSON payload for creating a PR")
-        .send()
-    {
+    let res = match client.patch(&repo_pr_url).json(&pr_body).send() {
         Ok(response) => response,
         Err(e) => panic!(format!("Error in request to github creating new PR: {}", e)),
     };
     delay_if_running_out_of_requests(res.headers());
 }
 
-pub fn update_pr_body(repo: &GithubRepo, token: &str, pr_number: &str, client: &reqwest::Client) {
-    let new_body = get_commits_from_pr(repo, token, pr_number, client);
-    set_pr_body(repo, token, pr_number, &new_body, client);
+pub fn update_pr_body(repo: &GithubRepo, pr_number: &str, client: &reqwest::Client) {
+    let new_body = get_commits_from_pr(repo, pr_number, client);
+    set_pr_body(repo, pr_number, &new_body, client);
 }
 
 // Try to create the release PR and return the URL of it:
 pub fn create_release_pull_request(
     repo: &GithubRepo,
-    token: &str,
     client: &reqwest::Client,
 ) -> Result<String, String> {
     let mut pr_body = HashMap::new();
@@ -389,15 +321,7 @@ pub fn create_release_pull_request(
     pr_body.insert("base", "release");
 
     let repo_pr_url = format!("{}/{}", repo.url, "pulls");
-    let mut res = match client
-        .post(&repo_pr_url)
-        .expect("Couldn't make a request builder for creating PR url")
-        .header(UserAgent::new(USERAGENT.to_string()))
-        .header(Authorization(format!("token {}", token)))
-        .json(&pr_body)
-        .expect("Couldn't make the JSON payload for creating a PR")
-        .send()
-    {
+    let mut res = match client.post(&repo_pr_url).json(&pr_body).send() {
         Ok(response) => response,
         Err(e) => return Err(format!("Error in request to github creating new PR: {}", e)),
     };
@@ -418,7 +342,7 @@ pub fn create_release_pull_request(
                 return Err(format!(
                     "Couldn't deserialize create pull req response for {}: {}",
                     repo.name, e
-                ))
+                ));
             }
         };
         return Ok(pull_req.html_url);
@@ -432,14 +356,13 @@ pub fn create_release_pull_request(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hyper::header::{Headers, Link, LinkValue, RelationType};
+    use reqwest::header::HeaderMap;
 
     #[test]
     fn plenty_of_requests_left() {
-        header! { (XRateLimitRemaining, "X-RateLimit-Remaining") => [String] };
-        let mut plenty_left_headers = Headers::new();
+        let mut plenty_left_headers = HeaderMap::new();
+        plenty_left_headers.insert("X-RateLimit-Remaining", "10000".parse().unwrap());
 
-        plenty_left_headers.set(XRateLimitRemaining("10000".to_owned()));
         assert_eq!(
             false,
             close_to_running_out_of_requests(&plenty_left_headers)
@@ -447,43 +370,44 @@ mod tests {
     }
 
     #[test]
-    fn no_requests_left() {
-        header! { (XRateLimitRemaining, "X-RateLimit-Remaining") => [String] };
-        let mut plenty_left_headers = Headers::new();
-
-        plenty_left_headers.set(XRateLimitRemaining("0".to_owned()));
-        assert_eq!(true, close_to_running_out_of_requests(&plenty_left_headers));
+    fn almost_no_requests_left() {
+        let mut nothing_left_headers = HeaderMap::new();
+        nothing_left_headers.insert("X-RateLimit-Remaining", "1".parse().unwrap());
+        assert_eq!(
+            true,
+            close_to_running_out_of_requests(&nothing_left_headers)
+        );
     }
 
     #[test]
     fn no_next_link() {
-        assert_eq!(false, response_has_a_next_link(&Headers::new()));
+        assert_eq!(false, response_has_a_next_link(&HeaderMap::new()));
     }
 
     #[test]
     fn has_next_link() {
-        let link_value = LinkValue::new("http://example.com/TheBook/chapter2")
-            .push_rel(RelationType::Next)
-            .set_title("next page");
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            LINK,
+            "<http://example.com/TheBook/chapter2>; rel=\"next\"; title=\"next page\""
+                .parse()
+                .unwrap(),
+        );
 
-        let mut no_next_link_headers = Headers::new();
-        no_next_link_headers.set(Link::new(vec![link_value]));
-
-        assert_eq!(true, response_has_a_next_link(&no_next_link_headers));
+        assert_eq!(true, response_has_a_next_link(&headers));
     }
 
     #[test]
     fn finds_next_link() {
-        let link_value = LinkValue::new("http://example.com/TheBook/chapter3")
-            .push_rel(RelationType::Next)
-            .set_title("next page");
-
-        let mut no_next_link_headers = Headers::new();
-        no_next_link_headers.set(Link::new(vec![link_value]));
-        let expected_uri = Url::parse("http://example.com/TheBook/chapter3").unwrap();
-        assert_eq!(
-            expected_uri,
-            response_next_link(&no_next_link_headers).unwrap()
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            LINK,
+            "<http://example.com/TheBook/chapter3>; rel=\"next\"; title=\"next page\""
+                .parse()
+                .unwrap(),
         );
+
+        let expected_uri = Url::parse("http://example.com/TheBook/chapter3").unwrap();
+        assert_eq!(expected_uri, response_next_link(&headers).unwrap());
     }
 }
