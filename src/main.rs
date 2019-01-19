@@ -9,10 +9,10 @@ extern crate serde_derive;
 extern crate toml;
 
 #[cfg(test)]
-#[macro_use]
 extern crate hyper;
 
 use clap::App;
+use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -20,6 +20,7 @@ use std::io::prelude::*;
 mod github;
 
 static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
+static USERAGENT: &'static str = "release-party-br";
 
 fn main() {
     let yaml = load_yaml!("release-party.yml");
@@ -36,11 +37,10 @@ fn main() {
             unreachable!();
         }
     };
-    let reqwest_client = get_reqwest_client();
+    let reqwest_client = get_reqwest_client(&token);
 
     let links = get_pr_links(
-        &get_repos_we_care_about(&token, &org_url, &reqwest_client),
-        &token,
+        &get_repos_we_care_about(&org_url, &reqwest_client),
         &reqwest_client,
         is_dryrun(&matches),
     );
@@ -90,14 +90,13 @@ fn make_org_url(matches: &clap::ArgMatches) -> String {
 
 fn get_pr_links(
     repos: &Vec<github::GithubRepo>,
-    token: &str,
     reqwest_client: &reqwest::Client,
     dryrun: bool,
 ) -> Vec<Option<String>> {
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
         .map(|repo| {
-            let i = match get_release_pr_for(&repo, &token, reqwest_client, dryrun) {
+            let i = match get_release_pr_for(&repo, reqwest_client, dryrun) {
                 Some(pr_url) => Some(pr_url),
                 None => None,
             };
@@ -108,7 +107,7 @@ fn get_pr_links(
                 Some(ref pr_url) => {
                     let pr_split = pr_url.split('/').collect::<Vec<&str>>();
                     let pr_num = pr_split.last().expect("PR link malformed?");
-                    github::update_pr_body(repo, token, pr_num, reqwest_client);
+                    github::update_pr_body(repo, pr_num, reqwest_client);
                 }
                 None => (),
             }
@@ -120,19 +119,29 @@ fn get_pr_links(
     pr_links
 }
 
-fn get_reqwest_client() -> reqwest::Client {
-    match reqwest::Client::new() {
+fn get_reqwest_client(token: &str) -> reqwest::Client {
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        USERAGENT.parse().expect("useragent should be a string"),
+    );
+    headers.insert(
+        AUTHORIZATION,
+        format!("token {}", token)
+            .parse()
+            .expect("token should be a string"),
+    );
+    match reqwest::Client::builder().default_headers(headers).build() {
         Ok(new_client) => new_client,
         Err(e) => panic!("Couldn't create new reqwest client: {}", e),
     }
 }
 
 fn get_repos_we_care_about(
-    token: &str,
     github_org_url: &str,
     reqwest_client: &reqwest::Client,
 ) -> Vec<github::GithubRepo> {
-    let mut repos = match github::get_repos_at(github_org_url, token, reqwest_client) {
+    let mut repos = match github::get_repos_at(github_org_url, reqwest_client) {
         Ok(repos) => repos,
         Err(e) => panic!(format!("Couldn't get repos from github: {}", e)),
     };
@@ -146,19 +155,18 @@ fn get_repos_we_care_about(
 
 fn get_release_pr_for(
     repo: &github::GithubRepo,
-    token: &str,
     client: &reqwest::Client,
     dryrun: bool,
 ) -> Option<String> {
     println!("looking for release PR for {}", repo.name);
-    match github::existing_release_pr_location(repo, token, client) {
+    match github::existing_release_pr_location(repo, client) {
         Some(url) => Some(url),
         None => {
-            if !github::is_release_up_to_date_with_master(&repo.url, token, client) {
+            if !github::is_release_up_to_date_with_master(&repo.url, client) {
                 if dryrun {
                     Some(format!("Dry run: {} would get a release PR.", repo.url))
                 } else {
-                    match github::create_release_pull_request(repo, token, client) {
+                    match github::create_release_pull_request(repo, client) {
                         Ok(pr_url) => Some(pr_url),
                         Err(_) => None,
                     }
