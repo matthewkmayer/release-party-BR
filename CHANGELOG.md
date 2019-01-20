@@ -3,7 +3,11 @@
 ## [Unreleased]
 
 (Please put an entry here in each PR)
+
+## [0.4.0] - 2010-01-19
 - Added CHANGELOG
+- Improved error messages
+- Add bulleted list of PRs included in each release PR
 
 ## [0.3.1] - 2017-09-21
 
