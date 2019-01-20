@@ -753,7 +753,7 @@ dependencies = [
 
 [[package]]
 name = "release-party-br"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clippy 0.0.302 (registry+https://github.com/rust-lang/crates.io-index)",
