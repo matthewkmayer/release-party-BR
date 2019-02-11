@@ -258,7 +258,12 @@ pub fn existing_release_pr_location(repo: &GithubRepo, client: &reqwest::Client)
     None
 }
 
-pub fn get_commits_from_pr(repo: &GithubRepo, pr_number: &str, client: &reqwest::Client) -> String {
+pub fn get_commits_from_pr(
+    repo: &GithubRepo,
+    pr_number: &str,
+    client: &reqwest::Client,
+    rp_version: &str,
+) -> String {
     let pr_commits_url = format!("{}/pulls/{}/commits", repo.url, pr_number);
 
     let mut res = match client.get(&pr_commits_url).send() {
@@ -290,6 +295,8 @@ pub fn get_commits_from_pr(repo: &GithubRepo, pr_number: &str, client: &reqwest:
         }
     }
 
+    new_body.push_str(&format!("\n\n---\nMade by `{}`.", rp_version));
+
     new_body
 }
 
@@ -305,8 +312,13 @@ pub fn set_pr_body(repo: &GithubRepo, pr_number: &str, body: &str, client: &reqw
     delay_if_running_out_of_requests(res.headers());
 }
 
-pub fn update_pr_body(repo: &GithubRepo, pr_number: &str, client: &reqwest::Client) {
-    let new_body = get_commits_from_pr(repo, pr_number, client);
+pub fn update_pr_body(
+    repo: &GithubRepo,
+    pr_number: &str,
+    client: &reqwest::Client,
+    rp_version: &str,
+) {
+    let new_body = get_commits_from_pr(repo, pr_number, client, rp_version);
     set_pr_body(repo, pr_number, &new_body, client);
 }
 

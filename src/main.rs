@@ -8,6 +8,9 @@ extern crate reqwest;
 extern crate serde_derive;
 extern crate toml;
 
+#[macro_use]
+extern crate lazy_static;
+
 #[cfg(test)]
 extern crate hyper;
 
@@ -21,6 +24,14 @@ mod github;
 
 static GITHUB_TOKEN: &'static str = "RP_GITHUBTOKEN";
 static USERAGENT: &'static str = "release-party-br";
+
+lazy_static! {
+    static ref RP_VERSION: String = {
+        let yaml = load_yaml!("release-party.yml");
+        let app = App::from_yaml(yaml);
+        version_string(&app)
+    };
+}
 
 fn main() {
     let yaml = load_yaml!("release-party.yml");
@@ -46,6 +57,13 @@ fn main() {
     );
 
     print_party_links(links);
+}
+
+fn version_string(app: &App) -> String {
+    let mut version: Vec<u8> = Vec::new();
+    app.write_version(&mut version)
+        .expect("Should write to version vec.");
+    String::from_utf8(version).expect("Version text should be utf8 text")
 }
 
 fn is_dryrun(matches: &clap::ArgMatches) -> bool {
@@ -107,7 +125,7 @@ fn get_pr_links(
                 Some(ref pr_url) => {
                     let pr_split = pr_url.split('/').collect::<Vec<&str>>();
                     let pr_num = pr_split.last().expect("PR link malformed?");
-                    github::update_pr_body(repo, pr_num, reqwest_client);
+                    github::update_pr_body(repo, pr_num, reqwest_client, &RP_VERSION);
                 }
                 None => (),
             }
