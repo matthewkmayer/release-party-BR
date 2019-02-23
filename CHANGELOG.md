@@ -4,10 +4,11 @@
 
 (Please put an entry here in each PR)
 
+## [0.5.0] - 2019-02-22
 - Put version of `release-party` used in each release PR
 - Added image showing what token permissions are required
 
-## [0.4.0] - 2010-01-19
+## [0.4.0] - 2019-01-19
 - Added CHANGELOG
 - Improved error messages
 - Add bulleted list of PRs included in each release PR
