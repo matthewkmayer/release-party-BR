@@ -5,6 +5,7 @@
 (Please put an entry here in each PR)
 
 - Put version of `release-party` used in each release PR
+- Added image showing what token permissions are required
 
 ## [0.4.0] - 2010-01-19
 - Added CHANGELOG

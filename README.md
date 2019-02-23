@@ -40,3 +40,13 @@ Prebuilt binaries for Linux and OSX are available on [the releases page](https:/
 #### Running on Linux
 
 `RP_GITHUBTOKEN=your_personal_token_here ./release-party-br-linux-amd64 --org "ORGHERE"`
+
+## Getting a token
+
+`release-party-br` uses a GitHub token that can be created under an account's settings. It requires "full control of private repositories."
+
+A graphical view:
+
+---
+
+![permissions](https://user-images.githubusercontent.com/4998189/52822542-c6b41980-3066-11e9-8bf5-c6e2e95df226.png)
