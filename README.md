@@ -2,8 +2,8 @@
 
 Release party automation.
 
-Designed to automate creating pull requests for releasing to production, release-party-br looks for repos in an 
-organization and creates pull requests from `master` to `release` branch on each repo.  Useful when there's many 
+Designed to automate creating pull requests for releasing to production, release-party-br looks for repos in an
+organization and creates pull requests from `master` to `release` branch on each repo.  Useful when there's many
 repos ready for a production release.
 
 <table>
@@ -31,7 +31,7 @@ Prebuilt binaries for Linux and OSX are available on [the releases page](https:/
 #### Optional
 
 * `dry-run` - See what PRs would be created: `RP_GITHUBTOKEN=your_personal_token_here cargo run -- --org "ORGHERE" --dry-run`
-* repo ignore list - The `ignoredrepos.toml` file can contain a list of repositories to ignore.  See [ignoredrepos.toml](ignoredrepos.toml) for an example.
+* repo ignore list - The `ignoredrepos.toml` or `~/.ignoredrepos.toml` file can contain a list of repositories to ignore. It will look in the current directory first for the file. See [ignoredrepos.toml](ignoredrepos.toml) for an example.
 
 #### Running on OSX
 
