@@ -233,15 +233,10 @@ fn ignored_repos() -> Vec<String> {
         false => None,
     };
 
-    let fi = if lfi.is_some() {
-        lfi.unwrap()
-    } else if hfi.is_some() {
-        hfi.unwrap()
-    } else {
-        println!(
-            "Couldn't find ignoredrepos.toml."
-        );
-        return Vec::new();
+    let fi = match (lfi, hfi) {
+        (Some(a), _) => a,
+        (None, Some(b)) => b,
+        (_, _) => {println!("The ignoredrepos.toml file not found"); return Vec::new()},
     };
 
     let mut f = match File::open(&fi) {
@@ -256,7 +251,7 @@ fn ignored_repos() -> Vec<String> {
     };
 
     println!(
-        "Found ignorerepos file at {:#?}",
+        "Found ignoredrepos.toml file at {:#?}",
         fi
     );
 
