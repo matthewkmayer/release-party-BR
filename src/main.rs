@@ -19,6 +19,7 @@ use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 
 mod github;
 
@@ -216,7 +217,34 @@ struct IgnoredRepo {
 }
 
 fn ignored_repos() -> Vec<String> {
-    let mut f = match File::open("ignoredrepos.toml") {
+    let hfi = match dirs::home_dir() {
+        Some(path) => {
+            if Path::new(&path).join(".ignoredrepos.toml").exists() {
+                Some(Path::new(&path).join(".ignoredrepos.toml"))
+            } else {
+                None
+            }
+        },
+        None => None,
+    };
+
+    let lfi = match Path::new("ignoredrepos.toml").exists() {
+        true  => Some(Path::new("ignoredrepos.toml").to_path_buf()),
+        false => None,
+    };
+
+    let fi = if lfi.is_some() {
+        lfi.unwrap()
+    } else if hfi.is_some() {
+        hfi.unwrap()
+    } else {
+        println!(
+            "Couldn't find ignoredrepos.toml."
+        );
+        return Vec::new();
+    };
+
+    let mut f = match File::open(&fi) {
         Ok(file) => file,
         Err(e) => {
             println!(
@@ -226,6 +254,12 @@ fn ignored_repos() -> Vec<String> {
             return Vec::new();
         }
     };
+
+    println!(
+        "Found ignorerepos file at {:#?}",
+        fi
+    );
+
     let mut buffer = String::new();
     match f.read_to_string(&mut buffer) {
         Ok(_) => (),

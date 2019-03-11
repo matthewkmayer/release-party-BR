@@ -12,6 +12,7 @@ toml = "0.4"
 clap = {version = "2.32", features = ["yaml"]}
 clippy = {version = "*", optional = true}
 lazy_static = "1.2.0"
+dirs = "1.0.5"
 
 [dev-dependencies]
 hyper = "0.12"
