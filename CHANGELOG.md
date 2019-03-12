@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-(Please put an entry here in each PR)
+- Support for looking the home dir for ignoredrepos.toml
 
 ## [0.5.0] - 2019-02-22
 - Put version of `release-party` used in each release PR
