@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Support for looking the home dir for ignoredrepos.toml
+- Add a fancy progress bar
 
 ## [0.5.0] - 2019-02-22
 - Put version of `release-party` used in each release PR

@@ -13,6 +13,7 @@ clap = {version = "2.32", features = ["yaml"]}
 clippy = {version = "*", optional = true}
 lazy_static = "1.2.0"
 dirs = "1.0.5"
+indicatif = "0.11"
 
 [dev-dependencies]
 hyper = "0.12"

@@ -7,6 +7,7 @@ extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
+extern crate indicatif;
 
 #[macro_use]
 extern crate lazy_static;
@@ -16,6 +17,7 @@ extern crate hyper;
 
 use clap::App;
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
+use indicatif::ProgressBar;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -112,9 +114,11 @@ fn get_pr_links(
     reqwest_client: &reqwest::Client,
     dryrun: bool,
 ) -> Vec<Option<String>> {
+    let bar = ProgressBar::new(repos.len() as u64);
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
         .map(|repo| {
+            bar.inc(1);
             let i = match get_release_pr_for(&repo, reqwest_client, dryrun) {
                 Some(pr_url) => Some(pr_url),
                 None => None,
@@ -133,6 +137,7 @@ fn get_pr_links(
             i
         })
         .collect();
+    bar.finish();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
     pr_links
@@ -177,7 +182,6 @@ fn get_release_pr_for(
     client: &reqwest::Client,
     dryrun: bool,
 ) -> Option<String> {
-    println!("looking for release PR for {}", repo.name);
     match github::existing_release_pr_location(repo, client) {
         Some(url) => Some(url),
         None => {
