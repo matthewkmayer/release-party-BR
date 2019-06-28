@@ -85,7 +85,7 @@ fn suggest_org_arg(org: &str) -> Result<String, String> {
         let suggestion = org
             .replace("https://api.github.com/orgs/", "")
             .replace("/repos", "");
-        return Ok(format!("{}", suggestion).to_owned());
+        return Ok(suggestion.to_string());
     }
     Err("Can't make a suggestion".to_owned())
 }
@@ -101,7 +101,7 @@ fn make_org_url(matches: &clap::ArgMatches) -> String {
                 print_message_and_exit(&format!("Try this for the org value: {}", suggestion), -1)
             }
             Err(_) => {
-                print_message_and_exit(&format!("Please make org just the organization name."), -1)
+                print_message_and_exit(&"Please make org just the organization name.".to_string(), -1)
             }
         }
     }
@@ -114,12 +114,12 @@ fn get_pr_links(
     reqwest_client: &reqwest::Client,
     dryrun: bool,
 ) -> Vec<Option<String>> {
-    let bar = ProgressBar::new(repos.len() as u64);
-    bar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:50.cyan/blue} {pos:>7}/{len:7} {msg}"));
+    let pbar = ProgressBar::new(repos.len() as u64);
+    pbar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:50.cyan/blue} {pos:>7}/{len:7} {msg}"));
     let mut pr_links: Vec<Option<String>> = repos
-        .into_iter()
+        .iter()
         .map(|repo| {
-            bar.inc(1);
+            pbar.inc(1);
             let i = match get_release_pr_for(&repo, reqwest_client, dryrun) {
                 Some(pr_url) => Some(pr_url),
                 None => None,
@@ -127,18 +127,15 @@ fn get_pr_links(
             // update the PR body
             // pr_url will look like https://github.com/matthewkmayer/release-party-BR/pull/39
             // split by '/' and grab last chunk.
-            match i {
-                Some(ref pr_url) => {
-                    let pr_split = pr_url.split('/').collect::<Vec<&str>>();
-                    let pr_num = pr_split.last().expect("PR link malformed?");
-                    github::update_pr_body(repo, pr_num, reqwest_client, &RP_VERSION);
-                }
-                None => (),
+            if let Some(ref pr_url) = i {
+                let pr_split = pr_url.split('/').collect::<Vec<&str>>();
+                let pr_num = pr_split.last().expect("PR link malformed?");
+                github::update_pr_body(repo, pr_num, reqwest_client, &RP_VERSION);
             }
             i
         })
         .collect();
-    bar.finish();
+    pbar.finish();
     // only keep the Some(PR_URL) items:
     pr_links.retain(|maybe_pr_link| maybe_pr_link.is_some());
     pr_links

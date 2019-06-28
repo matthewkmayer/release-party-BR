@@ -127,7 +127,7 @@ fn response_has_a_next_link(response_headers: &reqwest::header::HeaderMap) -> bo
     if let Some(link) = headers.get::<Link>() {
         return link.values().iter().any(|ref l| {
             if let Some(r) = l.rel() {
-                if r.iter().any(|foo| foo == &RelationType::Next) {
+                if r.iter().any(|linkref| linkref == &RelationType::Next) {
                     return true;
                 }
             }
