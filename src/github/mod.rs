@@ -282,7 +282,7 @@ pub fn get_commits_from_pr(
 
     let prs: Vec<CommitInPR> = match serde_json::from_str(&buffer) {
         Ok(v) => v,
-        Err(e) => panic!(format!("Couldn't deserialize repos from github: {}", e)),
+        Err(e) => panic!(format!("Couldn't deserialize repos from github: {}. Payload: {:#?}", e, buffer)),
     };
 
     let mut new_body = "automated release partay!\n\nPRs in this release:".to_string();
