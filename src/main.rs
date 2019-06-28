@@ -17,7 +17,7 @@ extern crate hyper;
 
 use clap::App;
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -115,6 +115,7 @@ fn get_pr_links(
     dryrun: bool,
 ) -> Vec<Option<String>> {
     let bar = ProgressBar::new(repos.len() as u64);
+    bar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:50.cyan/blue} {pos:>7}/{len:7} {msg}"));
     let mut pr_links: Vec<Option<String>> = repos
         .into_iter()
         .map(|repo| {
