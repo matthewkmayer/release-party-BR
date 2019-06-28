@@ -115,7 +115,7 @@ fn get_pr_links(
     dryrun: bool,
 ) -> Vec<Option<String>> {
     let pbar = ProgressBar::new(repos.len() as u64);
-    bar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:50.cyan/blue} {pos:>7}/{len:7} {msg}"));
+    pbar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:50.cyan/blue} {pos:>7}/{len:7} {msg}"));
     let mut pr_links: Vec<Option<String>> = repos
         .iter()
         .map(|repo| {
