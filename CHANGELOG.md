@@ -2,8 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2019-06-28
+
 - Support for looking the home dir for ignoredrepos.toml
 - Add a fancy progress bar
+- Provide a useful error if GitHub sends unexpected shapes
 
 ## [0.5.0] - 2019-02-22
 - Put version of `release-party` used in each release PR
